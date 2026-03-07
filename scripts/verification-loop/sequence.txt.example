@@ -1,0 +1,4 @@
+# Verification sequence: one line of comma-separated steps (or multiple lines joined).
+# Steps: wait:N, w:2 (hold W 2s), a:1, s:1, space:0 (tap), mouse:dx:dy, capture
+# Copy to sequence.txt and edit; the runner uses sequence.txt when -Sequence is not set.
+w:2,mouse:100:0,capture,w:1,mouse:-50:30,capture

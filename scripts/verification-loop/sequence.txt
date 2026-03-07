@@ -1,0 +1,3 @@
+# Timeline of captures to verify entity movement over time (server sends ~20 Hz updates).
+# wait N, capture, repeat so we get screenshots at t~1s, 4s, 7s, 10s, 13s and can compare.
+wait:1,capture,wait:3,capture,wait:3,capture,wait:3,capture,wait:3,capture

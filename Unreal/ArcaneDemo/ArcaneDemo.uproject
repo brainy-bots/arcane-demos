@@ -1,0 +1,23 @@
+{
+	"FileVersion": 3,
+	"EngineAssociation": "5.7",
+	"Category": "Games",
+	"Description": "Minimal UE5 project for Arcane Engine in-engine demo. Run manager + cluster (scripts/run_demo.ps1), then Play in Editor.",
+	"Modules": [
+		{
+			"Name": "ArcaneDemo",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		}
+	],
+	"Plugins": [
+		{
+			"Name": "ArcaneClient",
+			"Enabled": true
+		},
+		{
+			"Name": "WebSocketMessaging",
+			"Enabled": true
+		}
+	]
+}

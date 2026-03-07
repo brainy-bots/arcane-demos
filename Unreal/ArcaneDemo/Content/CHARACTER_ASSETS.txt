@@ -1,0 +1,42 @@
+Character mesh and run animation for Arcane entity visuals
+==========================================================
+
+To show humanoid characters that visibly RUN (instead of debug spheres):
+
+Option A — Use the Third Person template content
+------------------------------------------------
+1. Create a new Third Person (C++) project, or open one.
+2. Copy the folder Content/Characters/Mannequins into this project's Content/Characters/.
+   (So you get Content/Characters/Mannequins/Meshes/SKM_Quinn, Animations/, etc.)
+3. In Arcane Demo, the Arcane Entity Display actor (in your level or default) has:
+   - Skeletal Mesh Path = /Game/Characters/Mannequins/Meshes/SKM_Quinn.SKM_Quinn (default)
+   - Anim Blueprint Class = ArcaneEntityAnimInstance (default C++ class).
+4. For RUN animation without creating an Anim Blueprint:
+   - In the template, find a Run montage or run animation (e.g. under Mannequins/Animations).
+   - Set "Run Montage Path" on the Arcane Entity Display to that asset, e.g.:
+     /Game/Characters/Mannequins/Animations/... (exact path depends on template).
+   - The C++ anim instance will play it when the entity is moving.
+
+Option B — Create an Animation Blueprint (fixes T-pose, smooth Idle/Run blend)
+-------------------------------------------------------------------------------
+Entity visuals use ArcaneEntityAnimInstance and get Speed from server velocity. Without
+an ABP you may see T-pose when idle and only a run montage when moving. For proper
+Idle + Run like the player:
+
+1. In Content Browser: Right‑click → Animation → Animation Blueprint.
+2. Choose the mannequin skeleton (e.g. SK_QuinnSkeleton).
+3. Parent Class: ArcaneEntityAnimInstance (our C++ class exposes Speed).
+4. In the AnimGraph: blend Idle and Run by Speed (e.g. Idle when Speed < 10, Run when Speed >= 10).
+5. Save the ABP (e.g. ABP_ArcaneEntity).
+6. On Arcane Entity Display, set "Anim Blueprint Class" to your ABP.
+
+If no character assets are found, the display falls back to drawing simple spheres (body + head).
+
+Entity run animation (so entities visibly run when moving)
+---------------------------------------------------------
+- In the level, select the Arcane Entity Display actor.
+- Set "Entity Run Animation Path" to a run/jog montage or AnimSequence (e.g. from the same
+  Mannequins content). In Content Browser: right-click the asset → Copy Reference, then paste
+  into the path field (e.g. /Game/Characters/Mannequins/Animations/.../YourRunMontage.YourRunMontage).
+- If left empty, the code tries several built-in paths; if none exist, entities keep correct
+  Speed but may show default pose until you assign an asset.

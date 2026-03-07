@@ -1,0 +1,23 @@
+{
+	"FileVersion": 1,
+	"Version": 1,
+	"VersionName": "1.0",
+	"FriendlyName": "Arcane Client",
+	"Description": "Client adapter for Arcane Engine. HTTP join to manager, WebSocket to cluster, entity state cache. Used by Arcane Demo.",
+	"Category": "Networking",
+	"CreatedBy": "Arcane Engine",
+	"CreatedByURL": "",
+	"DocsURL": "",
+	"MarketplaceURL": "",
+	"SupportURL": "",
+	"CanContainContent": false,
+	"IsBetaVersion": false,
+	"IsEnabledByDefault": true,
+	"Modules": [
+		{
+			"Name": "ArcaneClient",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		}
+	]
+}

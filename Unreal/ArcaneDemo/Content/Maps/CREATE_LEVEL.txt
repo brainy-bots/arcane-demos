@@ -1,0 +1,23 @@
+Create the Arcane Demo level (one-time)
+========================================
+
+In Unreal Editor:
+
+1. File → New Level → Empty Level (or Basic).
+
+2. Add a floor:
+   - Place Actors panel → search "Cube" or "Plane".
+   - Drag "Cube" into the level.
+   - In Details: set Scale to e.g. (50, 50, 0.5) for a big flat floor, or use "Plane" and scale (50, 50, 1).
+   - Optional: assign a gray material (e.g. right-click in Content → Material, gray base color; drag onto the floor).
+
+3. Optional: add a Player Start
+   - Place Actors → search "Player Start", drag into level (above the floor).
+
+4. File → Save Current Level As…
+   - Save to: Content/Maps/ArcaneDemoMap (name: ArcaneDemoMap).
+   - This is now the default map (see Config/DefaultEngine.ini).
+
+5. Press Play to run the demo.
+
+No fancy texture or layout needed — a flat gray surface is enough for the replication demo.

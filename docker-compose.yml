@@ -1,0 +1,8 @@
+# Redis for multi-cluster replication. Bring up before run_demo_multi.ps1.
+# Usage: docker compose up -d
+
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"

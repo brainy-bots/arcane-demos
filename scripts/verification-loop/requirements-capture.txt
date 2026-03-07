@@ -1,0 +1,9 @@
+# For capture_game.py in this folder (verification-loop experiment).
+# Install: pip install -r scripts/verification-loop/requirements-capture.txt
+pyautogui>=0.9.50
+pygetwindow>=0.0.9
+Pillow>=9.0.0
+
+# Optional: capture game window when it's in the background (so you can use the PC during the loop).
+# Without this we capture the screen region; if another window is on top you get that window.
+pywin32>=306

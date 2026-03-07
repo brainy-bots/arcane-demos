@@ -1,0 +1,25 @@
+/target/
+Cargo.lock
+
+# Unreal
+Unreal/ArcaneDemo/Binaries/
+Unreal/ArcaneDemo/Build/
+Unreal/ArcaneDemo/Intermediate/
+Unreal/ArcaneDemo/Saved/
+*.sln
+.vs/
+.vscode/
+
+# Script output
+scripts/verification-loop/capture/screenshot*.png
+scripts/verification-loop/capture/game_log.txt
+scripts/benchmark/cluster_stderr.txt
+state.json
+viz.html
+demo.log
+
+.env
+*.pyc
+__pycache__/
+.DS_Store
+Thumbs.db
