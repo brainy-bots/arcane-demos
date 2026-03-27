@@ -16,11 +16,16 @@ scripts/verification-loop/capture/game_log.txt
 scripts/benchmark/cluster_stderr.txt
 scripts/benchmark/benchmark_results.csv
 scripts/benchmark/*.png
+scripts/swarm/*.csv
+scripts/swarm/*_logs/
 state.json
 viz.html
 demo.log
 *_output.txt
 swarm_*.csv
+monitor_clustered.txt
+clustered_output.txt
+spread_output.txt
 
 .env
 *.pyc

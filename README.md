@@ -57,3 +57,6 @@ Runs both Arcane and default Unreal networking at several entity counts, parses 
 Demos are “living” examples; we don’t tag them. Pin to specific versions of **arcane** and **arcane-client-unreal** (e.g. `v0.1.0`) for reproducible builds.
 
 See `docs/COMPATIBILITY_MATRIX.md` for tested repo/version combinations and expected contract compatibility.
+See `docs/ARCHITECTURE_INDEX.md` for architecture navigation and ownership boundaries.
+See `docs/MODULE_INTERACTIONS.md` for repository module responsibilities and integration boundaries.
+See `docs/ARTIFACT_BOUNDARY_POLICY.md` for source vs generated-output rules.
