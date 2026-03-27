@@ -17,7 +17,10 @@ We have **one implemented benchmark** that gives a **direct comparative value** 
 .\scripts\benchmark\run_benchmark.ps1              # Both modes, default counts
 .\scripts\benchmark\run_benchmark.ps1 -Mode Unreal # Unreal only (no backend)
 .\scripts\benchmark\run_benchmark.ps1 -Mode Arcane # Arcane only
+.\scripts\benchmark\run_benchmark.ps1 -Mode SpacetimeDB -SpacetimeDBLimitFinding   # SpacetimeDB only, find limit (100..5000 entities)
 ```
+
+For **SpacetimeDB-only** setup and finding limits on high-end hardware (e.g. 64 GB RAM, 16 cores), see **`docs/SPACETIMEDB_ONLY_SETUP.md`**. Prereq: run `spacetime start` in another terminal first.
 
 **Comparative value:**  
 - **Baseline = default Unreal replication** (listen server, replicated characters).  

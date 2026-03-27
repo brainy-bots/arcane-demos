@@ -41,6 +41,16 @@ For standalone runs, package once from the Unreal project (see `Unreal/ArcaneDem
 - **Skip server check** (e.g. no backend):  
   `.\scripts\verification-loop\run_verification.ps1 -BuildAndRunGame -SkipServerCheck -CloseAfter`
 
+- **SpacetimeDB mode** (same loop, SpacetimeDB backend + game `-UseSpacetimeDBNetworking`):  
+  Run SpacetimeDB in another terminal first (use `--yes` for non-interactive):  
+  `spacetime start`  
+  or `spacetime dev --yes --server-only` (if using dev mode).  
+  Then:  
+  `.\scripts\verification-loop\run_verification.ps1 -BuildAndRunGame -CloseAfter -UseSpacetimeDB`  
+  Or let the script start the simulator:  
+  `.\scripts\verification-loop\run_verification.ps1 -BuildAndRunGame -CloseAfter -UseSpacetimeDB -StartBackend`  
+  (`run_demo_spacetime.ps1` uses `spacetime publish --yes` so publish runs non-interactively.)
+
 - **Run in EDITOR + PIE** (same context where humanoids don’t show; so the AI can capture that):  
   `.\scripts\verification-loop\run_verification.ps1 -RunPIE -CloseAfter`  
   Builds, launches the Unreal Editor (no `-game`), waits for it to load, then the sequence sends **Alt+P** (Play) to start PIE. The script focuses the editor, waits 1s, clicks the center of the window (so the viewport has focus), then sends Alt+P. If Play doesn’t start, ensure no other window steals focus during the run, or check **Edit > Editor Preferences > Keyboard Shortcuts** for the actual Play shortcut. Window title used: `Unreal Editor`. See **`EDITOR_VS_GAME.md`** for why Editor vs. game can behave differently.

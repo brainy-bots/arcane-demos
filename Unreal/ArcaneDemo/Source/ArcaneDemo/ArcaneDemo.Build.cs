@@ -13,7 +13,8 @@ public class ArcaneDemo : ModuleRules
 			"Core",
 			"CoreUObject",
 			"Engine",
-			"ArcaneClient"
+			"ArcaneClient",
+			"SpacetimeDbSdk"
 		});
 	}
 }

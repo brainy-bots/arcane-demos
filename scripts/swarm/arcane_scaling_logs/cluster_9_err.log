@@ -1,0 +1,21 @@
+arcane-cluster started cluster_id=b119ebde-afcd-4fe6-90df-1e34b0f33da0 neighbors=9 tick_rate=20Hz
+cluster WebSocket listening on ws://0.0.0.0:8099 (send PLAYER_STATE to push player entity)
+SpacetimeDB persist: http://127.0.0.1:3000/v1/database/arcane/call/set_entities (every 20 ticks = 1 Hz)
+subscribed to 9 neighbor topic(s)
+ArcaneServerStats: entities=0 clusters=1 tick_ms=0.98
+ArcaneServerStats: entities=3 clusters=1 tick_ms=1.19
+SpacetimeDB persist error: error sending request for url (http://127.0.0.1:3000/v1/database/arcane/call/set_entities)
+tick 100 seq 100
+SpacetimeDB persist error: error sending request for url (http://127.0.0.1:3000/v1/database/arcane/call/set_entities)
+ArcaneServerStats: entities=338 clusters=1 tick_ms=379.28
+SpacetimeDB persist error: error sending request for url (http://127.0.0.1:3000/v1/database/arcane/call/set_entities)
+SpacetimeDB persist error: error sending request for url (http://127.0.0.1:3000/v1/database/arcane/call/set_entities)
+ArcaneServerStats: entities=420 clusters=1 tick_ms=350.46
+SpacetimeDB persist error: error sending request for url (http://127.0.0.1:3000/v1/database/arcane/call/set_entities)
+neighbor subscriber: get_message error: unexpected end of file
+SpacetimeDB persist error: error sending request for url (http://127.0.0.1:3000/v1/database/arcane/call/set_entities)
+tick 200 seq 200
+ArcaneServerStats: entities=439 clusters=1 tick_ms=4.95
+SpacetimeDB persist error: error sending request for url (http://127.0.0.1:3000/v1/database/arcane/call/set_entities)
+SpacetimeDB persist error: error sending request for url (http://127.0.0.1:3000/v1/database/arcane/call/set_entities)
+ArcaneServerStats: entities=446 clusters=1 tick_ms=163.91

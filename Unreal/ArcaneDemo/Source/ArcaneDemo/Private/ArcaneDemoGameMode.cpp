@@ -4,6 +4,7 @@
 #include "ArcaneDemoCharacter.h"
 #include "ArcaneEntityDisplay.h"
 #include "ReplicatedBotSpawner.h"
+#include "SpacetimeDBEntityDisplay.h"
 #include "EngineUtils.h"
 #include "Engine/World.h"
 #include "GameFramework/PlayerController.h"
@@ -28,14 +29,24 @@ void AArcaneDemoGameMode::InitGame(const FString& MapName, const FString& Option
 void AArcaneDemoGameMode::BeginPlay()
 {
 	Super::BeginPlay();
-	// Command line overrides for benchmark: -UseUnrealNetworking -ArcaneBenchmarkBots=N
-	if (FParse::Param(FCommandLine::Get(), TEXT("UseUnrealNetworking")))
+	// Command line overrides for benchmark: -UseUnrealNetworking -ArcaneBenchmarkBots=N, -UseSpacetimeDBNetworking
+	if (FParse::Param(FCommandLine::Get(), TEXT("UseSpacetimeDBNetworking")))
 	{
 		bUseArcaneNetworking = false;
+		bUseSpacetimeDBNetworking = true;
+	}
+	else if (FParse::Param(FCommandLine::Get(), TEXT("UseUnrealNetworking")))
+	{
+		bUseArcaneNetworking = false;
+		bUseSpacetimeDBNetworking = false;
 		FParse::Value(FCommandLine::Get(), TEXT("ArcaneBenchmarkBots="), NumUnrealReplicatedBots);
 		NumUnrealReplicatedBots = FMath::Clamp(NumUnrealReplicatedBots, 1, 2000);
 	}
-	if (bUseArcaneNetworking)
+	if (bUseSpacetimeDBNetworking)
+	{
+		EnsureSpacetimeDBEntityDisplayExists();
+	}
+	else if (bUseArcaneNetworking)
 	{
 		EnsureEntityDisplayExists();
 	}
@@ -49,6 +60,12 @@ void AArcaneDemoGameMode::EnsureEntityDisplayExists()
 {
 	UWorld* World = GetWorld();
 	if (!World) return;
+
+	// Remove any SpacetimeDB display when using Arcane.
+	for (TActorIterator<ASpacetimeDBEntityDisplay> It(World); It; ++It)
+	{
+		(*It)->Destroy();
+	}
 
 	TArray<AArcaneEntityDisplay*> Displays;
 	for (TActorIterator<AArcaneEntityDisplay> It(World); It; ++It)
@@ -74,13 +91,55 @@ void AArcaneDemoGameMode::EnsureEntityDisplayExists()
 	}
 }
 
+void AArcaneDemoGameMode::EnsureSpacetimeDBEntityDisplayExists()
+{
+	UWorld* World = GetWorld();
+	if (!World) return;
+
+	// Remove any Arcane display or Unreal bot spawner so we don't run both systems.
+	for (TActorIterator<AArcaneEntityDisplay> It(World); It; ++It)
+	{
+		(*It)->Destroy();
+	}
+	for (TActorIterator<AReplicatedBotSpawner> It(World); It; ++It)
+	{
+		(*It)->Destroy();
+	}
+
+	TArray<ASpacetimeDBEntityDisplay*> Displays;
+	for (TActorIterator<ASpacetimeDBEntityDisplay> It(World); It; ++It)
+	{
+		Displays.Add(*It);
+	}
+	if (Displays.Num() == 0)
+	{
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		World->SpawnActor<ASpacetimeDBEntityDisplay>(FVector(0.f, 0.f, 100.f), FRotator::ZeroRotator, SpawnParams);
+	}
+	else if (Displays.Num() > 1)
+	{
+		for (int32 i = 1; i < Displays.Num(); ++i)
+		{
+			if (Displays[i])
+			{
+				Displays[i]->Destroy();
+			}
+		}
+	}
+}
+
 void AArcaneDemoGameMode::EnsureUnrealBotSpawnerExists()
 {
 	UWorld* World = GetWorld();
 	if (!World) return;
 
-	// Remove any Arcane entity display so we don't run both systems.
+	// Remove any Arcane or SpacetimeDB entity display so we don't run both systems.
 	for (TActorIterator<AArcaneEntityDisplay> It(World); It; ++It)
+	{
+		(*It)->Destroy();
+	}
+	for (TActorIterator<ASpacetimeDBEntityDisplay> It(World); It; ++It)
 	{
 		(*It)->Destroy();
 	}

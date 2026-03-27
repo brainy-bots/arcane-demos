@@ -16,6 +16,10 @@
 			"Enabled": true
 		},
 		{
+			"Name": "SpacetimeDbSdk",
+			"Enabled": true
+		},
+		{
 			"Name": "WebSocketMessaging",
 			"Enabled": true
 		}

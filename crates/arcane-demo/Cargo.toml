@@ -16,10 +16,35 @@ path = "src/main.rs"
 name = "arcane-cluster-demo"
 path = "src/bin/arcane_cluster_demo.rs"
 
+[[bin]]
+name = "arcane-spacetime-sim"
+path = "src/bin/arcane_spacetime_sim.rs"
+
+[[bin]]
+name = "arcane-swarm"
+path = "src/bin/arcane_swarm.rs"
+
+[[bin]]
+name = "arcane-swarm-sdk"
+path = "src/bin/arcane_swarm_sdk.rs"
+
 [dependencies]
 # Path to sibling arcane repo (clone arcane next to arcane-demos, e.g. E:\code\arcane and E:\code\arcane-demos)
-arcane-infra = { path = "../../../arcane/crates/arcane-infra", features = ["cluster-ws"] }
+arcane-infra = { path = "../../../arcane/crates/arcane-infra", features = ["cluster-ws", "spacetimedb-persist"] }
 arcane-core = { path = "../../../arcane/crates/arcane-core" }
 rand = "0.8"
 serde_json = "1.0"
 uuid = { version = "1.0", features = ["v4"] }
+reqwest = { version = "0.12", features = ["json", "blocking"], optional = true }
+serde = { version = "1.0", features = ["derive"], optional = true }
+tokio = { version = "1", features = ["full"], optional = true }
+tokio-tungstenite = { version = "0.21", optional = true }
+futures-util = { version = "0.3", optional = true }
+spacetimedb-sdk = { version = "2.0.5", optional = true }
+log = { version = "0.4", optional = true }
+
+[features]
+default = []
+spacetime-sim = ["dep:reqwest", "dep:serde"]
+swarm = ["dep:reqwest", "dep:serde", "dep:tokio", "dep:tokio-tungstenite", "dep:futures-util"]
+swarm-sdk = ["dep:spacetimedb-sdk", "dep:tokio", "dep:log"]

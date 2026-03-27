@@ -7,6 +7,7 @@
 #include "ArcaneDemoGameMode.generated.h"
 
 class AReplicatedBotSpawner;
+class ASpacetimeDBEntityDisplay;
 
 /**
  * Default game mode for Arcane Demo. Switch networking mode to compare default Unreal replication vs Arcane.
@@ -31,13 +32,18 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Arcane")
 	bool bUseArcaneNetworking = true;
 
-	/** When bUseArcaneNetworking is false: number of replicated bots to spawn on server for stress test. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Arcane", meta = (EditCondition = "!bUseArcaneNetworking", ClampMin = "1", ClampMax = "2000"))
+	/** When bUseArcaneNetworking is false and bUseSpacetimeDBNetworking is false: number of replicated bots to spawn on server for stress test. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Arcane", meta = (EditCondition = "!bUseArcaneNetworking && !bUseSpacetimeDBNetworking", ClampMin = "1", ClampMax = "2000"))
 	int32 NumUnrealReplicatedBots = 20;
+
+	/** When bUseArcaneNetworking is false: if true use SpacetimeDB (subscribe to Entity table); if false use default Unreal replication. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Arcane", meta = (EditCondition = "!bUseArcaneNetworking"))
+	bool bUseSpacetimeDBNetworking = false;
 
 private:
 	void EnsureEntityDisplayExists();
 	void EnsureUnrealBotSpawnerExists();
+	void EnsureSpacetimeDBEntityDisplayExists();
 	/** If the level has no Player Start, spawn one so the player can be created. */
 	void EnsurePlayerStartExists();
 };

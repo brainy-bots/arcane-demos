@@ -4,6 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "Subsystems/GameInstanceSubsystem.h"
+#include "ArcaneConnectionClient.h"
+#include "ArcaneEntityCache.h"
 #include "ArcaneTypes.h"
 #include "Interfaces/IHttpRequest.h"
 #include "Interfaces/IHttpResponse.h"
@@ -14,6 +16,17 @@ class AActor;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FArcaneOnConnected);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FArcaneOnDisconnected, const FString&, Reason);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FArcaneOnConnectionFailed, const FString&, Reason);
+
+UENUM(BlueprintType)
+enum class EArcaneConnectionState : uint8
+{
+	Disconnected UMETA(DisplayName = "Disconnected"),
+	Joining UMETA(DisplayName = "Joining"),
+	ConnectingWebSocket UMETA(DisplayName = "ConnectingWebSocket"),
+	Connected UMETA(DisplayName = "Connected"),
+	Reconnecting UMETA(DisplayName = "Reconnecting"),
+	Failed UMETA(DisplayName = "Failed")
+};
 
 /**
  * Game instance subsystem that implements the Arcane client adapter.
@@ -93,8 +106,23 @@ public:
 	UPROPERTY(BlueprintReadWrite, Category = "Arcane", meta = (ClampMin = "0.01"))
 	float SendPositionScale = 1.f;
 
+	/** Enable automatic reconnect after connection failures. */
+	UPROPERTY(BlueprintReadWrite, Category = "Arcane|Connection")
+	bool bEnableAutoReconnect = true;
+
+	/** Max reconnect attempts after a failure (0 = disabled). */
+	UPROPERTY(BlueprintReadWrite, Category = "Arcane|Connection", meta = (ClampMin = "0"))
+	int32 MaxReconnectAttempts = 3;
+
+	/** Delay between reconnect attempts in seconds. */
+	UPROPERTY(BlueprintReadWrite, Category = "Arcane|Connection", meta = (ClampMin = "0.1"))
+	float ReconnectDelaySeconds = 1.0f;
+
 	UFUNCTION(BlueprintCallable, Category = "Arcane", BlueprintPure)
 	bool IsConnected() const { return bIsConnected; }
+
+	UFUNCTION(BlueprintCallable, Category = "Arcane", BlueprintPure)
+	EArcaneConnectionState GetConnectionState() const { return ConnectionState; }
 
 	/** This client's entity ID (set when connecting). Used when sending PLAYER_STATE. */
 	UPROPERTY(BlueprintReadOnly, Category = "Arcane")
@@ -104,22 +132,22 @@ public:
 	virtual void Deinitialize() override;
 
 private:
+	void StartJoinRequest();
+	void HandleConnectionFailure(const FString& Reason);
+	void BeginReconnect(const FString& Reason);
+	void AttemptReconnectIfDue();
 	void OnJoinResponseReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bSuccess);
 	void ConnectWebSocket(const FString& Host, int32 Port);
-	void OnWebSocketConnected();
-	void OnWebSocketConnectionError(const FString& Error);
-	void OnWebSocketMessage(const FString& Message);
-	void OnWebSocketClosed(int32 StatusCode, const FString& Reason, bool bWasClean);
 	void ParseStateUpdateJson(const FString& JsonString);
 	void ApplyStateUpdate(const TArray<FArcaneEntityState>& Updated, const TArray<FString>& RemovedIds);
 
 	bool bIsConnected = false;
-	TSharedPtr<class IWebSocket> WebSocket;
+	bool bManualDisconnect = false;
+	EArcaneConnectionState ConnectionState = EArcaneConnectionState::Disconnected;
+	int32 CurrentReconnectAttempt = 0;
+	double NextReconnectAtSeconds = 0.0;
+	TUniquePtr<FArcaneConnectionClient> ConnectionClient;
 	TArray<FString> InboundMessageQueue;
-	mutable FCriticalSection EntityCacheMutex;
-	TMap<FString, FArcaneEntityState> EntityCache;
-	/** Previous snapshot and times for interpolation (smooth movement between server ticks). */
-	TMap<FString, FArcaneEntityState> PreviousEntityCache;
-	double CurrentSnapshotTime = 0.0;
-	double PreviousSnapshotTime = 0.0;
+	mutable FCriticalSection InboundQueueMutex;
+	FArcaneEntityCache EntityCache;
 };

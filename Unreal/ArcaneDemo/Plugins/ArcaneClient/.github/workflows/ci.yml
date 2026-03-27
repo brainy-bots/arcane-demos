@@ -1,0 +1,35 @@
+name: ci
+
+on:
+  push:
+    branches: ["master", "main"]
+  pull_request:
+
+jobs:
+  plugin-sanity:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate plugin descriptor
+        shell: pwsh
+        run: |
+          $plugin = Get-Content "ArcaneClient.uplugin" -Raw | ConvertFrom-Json
+          if (-not $plugin.FriendlyName) { throw "ArcaneClient.uplugin missing FriendlyName" }
+          if (-not $plugin.Modules -or $plugin.Modules.Count -lt 1) { throw "ArcaneClient.uplugin missing Modules" }
+          if ($plugin.Modules[0].Name -ne "ArcaneClient") { throw "Expected first module name ArcaneClient" }
+
+      - name: Validate source layout
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "Source/ArcaneClient/ArcaneClient.Build.cs")) { throw "Missing Build.cs file" }
+          $headers = Get-ChildItem "Source/ArcaneClient/Public" -Recurse -Filter *.h -ErrorAction SilentlyContinue
+          $sources = Get-ChildItem "Source/ArcaneClient/Private" -Recurse -Filter *.cpp -ErrorAction SilentlyContinue
+          if (-not $headers -or -not $sources) { throw "Missing expected C++ public/private source files" }
+
+      - name: Validate test sources exist
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "Source/ArcaneClient/Private/Tests/ArcaneProtocolCodecTests.cpp")) { throw "Missing protocol codec tests" }
+          if (-not (Test-Path "Source/ArcaneClient/Private/Tests/ArcaneEntityCacheTests.cpp")) { throw "Missing entity cache tests" }

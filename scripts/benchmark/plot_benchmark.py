@@ -39,34 +39,29 @@ def main():
 
     arcane = sorted([r for r in rows if r["Mode"] == "Arcane" and r["FPS_median"] is not None], key=lambda x: x["Entities"])
     unreal = sorted([r for r in rows if r["Mode"] == "Unreal" and r["FPS_median"] is not None], key=lambda x: x["Entities"])
+    spacetimedb = sorted([r for r in rows if r["Mode"] == "SpacetimeDB" and r["FPS_median"] is not None], key=lambda x: x["Entities"])
 
     fig, ax = plt.subplots()
-    if arcane:
-        x = [r["Entities"] for r in arcane]
-        y = [r["FPS_median"] for r in arcane]
-        ymin = [r["FPS_min"] for r in arcane] if arcane[0].get("FPS_min") else None
-        ymax = [r["FPS_max"] for r in arcane] if arcane[0].get("FPS_max") else None
+    def plot_series(data, label, marker, style="-"):
+        if not data:
+            return
+        x = [r["Entities"] for r in data]
+        y = [r["FPS_median"] for r in data]
+        ymin = [r.get("FPS_min") for r in data] if data[0].get("FPS_min") is not None else None
+        ymax = [r.get("FPS_max") for r in data] if data[0].get("FPS_max") is not None else None
         if ymin and ymax:
-            err_lo = [yi - mi for yi, mi in zip(y, ymin)]
-            err_hi = [mx - yi for yi, mx in zip(y, ymax)]
-            ax.errorbar(x, y, yerr=(err_lo, err_hi), label="Arcane (library)", capsize=3, marker="o")
+            err_lo = [yi - (mi or yi) for yi, mi in zip(y, ymin)]
+            err_hi = [(mx or yi) - yi for yi, mx in zip(y, ymax)]
+            ax.errorbar(x, y, yerr=(err_lo, err_hi), label=label, capsize=3, marker=marker)
         else:
-            ax.plot(x, y, "o-", label="Arcane (library)")
-    if unreal:
-        x = [r["Entities"] for r in unreal]
-        y = [r["FPS_median"] for r in unreal]
-        ymin = [r["FPS_min"] for r in unreal] if unreal[0].get("FPS_min") else None
-        ymax = [r["FPS_max"] for r in unreal] if unreal[0].get("FPS_max") else None
-        if ymin and ymax:
-            err_lo = [yi - mi for yi, mi in zip(y, ymin)]
-            err_hi = [mx - yi for yi, mx in zip(y, ymax)]
-            ax.errorbar(x, y, yerr=(err_lo, err_hi), label="Unreal (default)", capsize=3, marker="s")
-        else:
-            ax.plot(x, y, "s-", label="Unreal (default)")
+            ax.plot(x, y, marker + style, label=label)
+    plot_series(arcane, "Arcane (library)", "o")
+    plot_series(unreal, "Unreal (default)", "s")
+    plot_series(spacetimedb, "SpacetimeDB", "^")
 
     ax.set_xlabel("Entity count")
     ax.set_ylabel("FPS (median)")
-    ax.set_title("Arcane vs default Unreal networking")
+    ax.set_title("Arcane vs Unreal vs SpacetimeDB networking")
     ax.legend()
     ax.grid(True, alpha=0.3)
     out = csv_path.with_suffix(".png")

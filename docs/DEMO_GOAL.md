@@ -54,6 +54,4 @@ Start with (1), then (2), and iterate.
   - **Single-cluster 200:** Tested: 200 entities at ~40 FPS (HUD may show 201 including player). Run: `.\scripts\run_demo.ps1` then `.\scripts\verification-loop\run_verification.ps1 -BuildAndRunGame -CloseAfter`.
   - **Multi-cluster 150:** Redis + run_demo_multi.ps1 (50×3). **Tested:** `run_verification_multi.ps1` passes; client sees 207 entities (150 demo + player/replication) at ~20–26 FPS. HUD shows "Entities: N | FPS"; "Clusters: 3" appears when snapshot contains distinct cluster IDs from replication.
 
-**Benchmark (prove library vs baseline):** `.\scripts\benchmark\run_benchmark.ps1` runs both modes at 20, 50, 100, 150, 200 entities, parses FPS from the game log, writes `scripts/benchmark/benchmark_results.csv`, and generates `benchmark_results.png`. Run this and use the chart to show Arcane vs Unreal limits.
-
-**Presenting the demo:** See **`DEMO_ONEPAGER.md`** for run instructions and talking points. **Concrete to-do:** See **`DEMO_TODO.md`**. **Splitting the repo** (library vs demos, versioning): **`docs/REPO_SPLIT_PLAN.md`**.
+**Presenting the demo:** See **`DEMO_ONEPAGER.md`** for how to run and show the demo with Arcane, default Unreal, or SpacetimeDB — same scene, switch the data source so people can see how each works. Optional: `.\scripts\benchmark\run_benchmark.ps1` for numeric comparison if needed. **Concrete to-do:** See **`DEMO_TODO.md`**. **Splitting the repo** (library vs demos, versioning): **`docs/REPO_SPLIT_PLAN.md`**.

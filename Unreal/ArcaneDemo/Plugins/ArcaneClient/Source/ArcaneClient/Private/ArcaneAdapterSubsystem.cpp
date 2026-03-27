@@ -1,6 +1,8 @@
 // Copyright Arcane Engine. Adapter subsystem implementation.
 
 #include "ArcaneAdapterSubsystem.h"
+#include "ArcaneConnectionClient.h"
+#include "ArcaneProtocolCodec.h"
 #include "ArcaneTypes.h"
 #include "GameFramework/Actor.h"
 #include "GameFramework/Character.h"
@@ -12,12 +14,6 @@
 DEFINE_LOG_CATEGORY_STATIC(LogArcaneAdapter, Log, All);
 #include "Interfaces/IHttpRequest.h"
 #include "Interfaces/IHttpResponse.h"
-#include "Modules/ModuleManager.h"
-#include "WebSocketsModule.h"
-#include "IWebSocket.h"
-#include "Dom/JsonObject.h"
-#include "Serialization/JsonReader.h"
-#include "Serialization/JsonSerializer.h"
 #include "HAL/PlatformTime.h"
 
 void UArcaneAdapterSubsystem::Initialize(FSubsystemCollectionBase& Collection)
@@ -43,7 +39,15 @@ void UArcaneAdapterSubsystem::Initialize(const FString& InManagerUrl)
 void UArcaneAdapterSubsystem::Connect()
 {
 	Disconnect();
+	bManualDisconnect = false;
+	CurrentReconnectAttempt = 0;
+	NextReconnectAtSeconds = 0.0;
+	ConnectionState = EArcaneConnectionState::Joining;
+	StartJoinRequest();
+}
 
+void UArcaneAdapterSubsystem::StartJoinRequest()
+{
 	FString JoinUrl = ManagerUrl + TEXT("/join");
 	UE_LOG(LogArcaneAdapter, Log, TEXT("Connect: GET %s"), *JoinUrl);
 	TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = FHttpModule::Get().CreateRequest();
@@ -52,7 +56,7 @@ void UArcaneAdapterSubsystem::Connect()
 	Request->OnProcessRequestComplete().BindUObject(this, &UArcaneAdapterSubsystem::OnJoinResponseReceived);
 	if (!Request->ProcessRequest())
 	{
-		OnConnectionFailed.Broadcast(TEXT("Failed to start HTTP request"));
+		HandleConnectionFailure(TEXT("Failed to start HTTP request"));
 	}
 }
 
@@ -60,105 +64,106 @@ void UArcaneAdapterSubsystem::OnJoinResponseReceived(FHttpRequestPtr Request, FH
 {
 	if (!bSuccess || !Response.IsValid())
 	{
-		OnConnectionFailed.Broadcast(TEXT("HTTP request failed or no response"));
+		HandleConnectionFailure(TEXT("HTTP request failed or no response"));
 		return;
 	}
 
 	if (Response->GetResponseCode() != 200)
 	{
-		OnConnectionFailed.Broadcast(FString::Printf(TEXT("Join returned %d"), Response->GetResponseCode()));
-		return;
-	}
-
-	FString JsonString = Response->GetContentAsString();
-	TSharedPtr<FJsonObject> JsonObject;
-	TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(JsonString);
-	if (!FJsonSerializer::Deserialize(Reader, JsonObject) || !JsonObject.IsValid())
-	{
-		OnConnectionFailed.Broadcast(TEXT("Invalid JSON from /join"));
+		HandleConnectionFailure(FString::Printf(TEXT("Join returned %d"), Response->GetResponseCode()));
 		return;
 	}
 
 	FString ServerHost;
 	int32 ServerPort = 8080;
-	if (!JsonObject->TryGetStringField(TEXT("server_host"), ServerHost))
+	FString ParseError;
+	if (!ArcaneProtocolCodec::ParseJoinResponse(Response->GetContentAsString(), ServerHost, ServerPort, ParseError))
 	{
-		OnConnectionFailed.Broadcast(TEXT("Join response missing server_host"));
+		HandleConnectionFailure(ParseError);
 		return;
 	}
-	JsonObject->TryGetNumberField(TEXT("server_port"), ServerPort);
 
+	ConnectionState = EArcaneConnectionState::ConnectingWebSocket;
 	UE_LOG(LogArcaneAdapter, Log, TEXT("Join OK: connecting WebSocket to %s:%d"), *ServerHost, ServerPort);
 	ConnectWebSocket(ServerHost, ServerPort);
 }
 
 void UArcaneAdapterSubsystem::ConnectWebSocket(const FString& Host, int32 Port)
 {
-	FWebSocketsModule* const WsModule = FModuleManager::LoadModulePtr<FWebSocketsModule>(TEXT("WebSockets"));
-	if (!WsModule)
+	ConnectionClient = MakeUnique<FArcaneConnectionClient>();
+	FString ConnectError;
+	const bool bStarted = ConnectionClient->Connect(
+		Host,
+		Port,
+		FArcaneConnectionClientCallbacks{
+			[this]() {
+				AsyncTask(ENamedThreads::GameThread, [this]() {
+					if (PlayerEntityId.IsEmpty())
+					{
+						PlayerEntityId = FGuid::NewGuid().ToString(EGuidFormats::DigitsWithHyphens);
+					}
+					bIsConnected = true;
+					ConnectionState = EArcaneConnectionState::Connected;
+					CurrentReconnectAttempt = 0;
+					UE_LOG(LogArcaneAdapter, Log, TEXT("WebSocket connected (player_id=%s)"), *PlayerEntityId);
+					OnConnected.Broadcast();
+				});
+			},
+			[this](const FString& Error) {
+				AsyncTask(ENamedThreads::GameThread, [this, Error]() {
+					bIsConnected = false;
+					HandleConnectionFailure(Error);
+				});
+			},
+			[this](const FString& Message) {
+				FScopeLock Lock(&InboundQueueMutex);
+				InboundMessageQueue.Add(Message);
+			},
+			[this](int32 StatusCode, const FString& Reason, bool bWasClean) {
+				AsyncTask(ENamedThreads::GameThread, [this, Reason]() {
+					bIsConnected = false;
+					OnDisconnected.Broadcast(Reason);
+					if (!bManualDisconnect)
+					{
+						HandleConnectionFailure(FString::Printf(TEXT("WebSocket closed: %s"), *Reason));
+					}
+				});
+			}
+		},
+		ConnectError
+	);
+	if (!bStarted)
 	{
-		OnConnectionFailed.Broadcast(TEXT("WebSockets module could not be loaded. Enable WebSocket support or check engine installation."));
+		HandleConnectionFailure(ConnectError);
 		return;
 	}
-
-	FString WsUrl = FString::Printf(TEXT("ws://%s:%d"), *Host, Port);
-	TSharedPtr<IWebSocket> Socket = WsModule->CreateWebSocket(WsUrl, TEXT("ws"));
-
-	Socket->OnConnected().AddLambda([this]() {
-		AsyncTask(ENamedThreads::GameThread, [this]() {
-			if (PlayerEntityId.IsEmpty())
-			{
-				PlayerEntityId = FGuid::NewGuid().ToString(EGuidFormats::DigitsWithHyphens);
-			}
-			bIsConnected = true;
-			UE_LOG(LogArcaneAdapter, Log, TEXT("WebSocket connected (player_id=%s)"), *PlayerEntityId);
-			OnConnected.Broadcast();
-		});
-	});
-	Socket->OnConnectionError().AddLambda([this](const FString& Error) {
-		AsyncTask(ENamedThreads::GameThread, [this, Error]() {
-			bIsConnected = false;
-			OnConnectionFailed.Broadcast(Error);
-		});
-	});
-	Socket->OnMessage().AddLambda([this](const FString& Message) {
-		FScopeLock Lock(&EntityCacheMutex);
-		InboundMessageQueue.Add(Message);
-	});
-	Socket->OnClosed().AddLambda([this](int32 StatusCode, const FString& Reason, bool bWasClean) {
-		AsyncTask(ENamedThreads::GameThread, [this, Reason]() {
-			bIsConnected = false;
-			OnDisconnected.Broadcast(Reason);
-		});
-	});
-
-	WebSocket = Socket;
-	WebSocket->Connect();
 }
 
 void UArcaneAdapterSubsystem::Disconnect()
 {
-	if (WebSocket.IsValid() && WebSocket->IsConnected())
+	bManualDisconnect = true;
+	ConnectionState = EArcaneConnectionState::Disconnected;
+	NextReconnectAtSeconds = 0.0;
+	if (ConnectionClient.IsValid())
 	{
-		WebSocket->Close();
+		ConnectionClient->Disconnect();
+		ConnectionClient.Reset();
 	}
-	WebSocket.Reset();
 	bIsConnected = false;
 	{
-		FScopeLock Lock(&EntityCacheMutex);
+		FScopeLock Lock(&InboundQueueMutex);
 		InboundMessageQueue.Empty();
-		EntityCache.Empty();
-		PreviousEntityCache.Empty();
-		CurrentSnapshotTime = 0.0;
-		PreviousSnapshotTime = 0.0;
 	}
+	EntityCache.Reset();
 }
 
 void UArcaneAdapterSubsystem::Tick(float DeltaTime)
 {
+	AttemptReconnectIfDue();
+
 	TArray<FString> ToProcess;
 	{
-		FScopeLock Lock(&EntityCacheMutex);
+		FScopeLock Lock(&InboundQueueMutex);
 		ToProcess = MoveTemp(InboundMessageQueue);
 		InboundMessageQueue.Empty();
 	}
@@ -168,65 +173,70 @@ void UArcaneAdapterSubsystem::Tick(float DeltaTime)
 	}
 }
 
-void UArcaneAdapterSubsystem::ParseStateUpdateJson(const FString& JsonString)
+void UArcaneAdapterSubsystem::HandleConnectionFailure(const FString& Reason)
 {
-	TSharedPtr<FJsonObject> JsonObject;
-	TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(JsonString);
-	if (!FJsonSerializer::Deserialize(Reader, JsonObject) || !JsonObject.IsValid())
+	if (ConnectionClient.IsValid())
 	{
-		UE_LOG(LogArcaneAdapter, Warning, TEXT("ParseStateUpdateJson: invalid JSON (first 200 chars): %s"), *JsonString.Left(200));
+		ConnectionClient->Disconnect();
+		ConnectionClient.Reset();
+	}
+	bIsConnected = false;
+
+	if (!bEnableAutoReconnect || bManualDisconnect || MaxReconnectAttempts <= 0)
+	{
+		ConnectionState = EArcaneConnectionState::Failed;
+		OnConnectionFailed.Broadcast(Reason);
 		return;
 	}
 
-	TArray<FArcaneEntityState> Updated;
-	const TArray<TSharedPtr<FJsonValue>>* UpdatedArray;
-	if (JsonObject->TryGetArrayField(TEXT("updated"), UpdatedArray))
+	if (CurrentReconnectAttempt >= MaxReconnectAttempts)
 	{
-		for (const TSharedPtr<FJsonValue>& EntryVal : *UpdatedArray)
-		{
-			const TSharedPtr<FJsonObject>* EntryObj;
-			if (!EntryVal->TryGetObject(EntryObj) || !EntryObj->IsValid()) continue;
-
-			FString EntityId;
-			if (!(*EntryObj)->TryGetStringField(TEXT("entity_id"), EntityId)) continue;
-
-			FString ClusterId;
-			(*EntryObj)->TryGetStringField(TEXT("cluster_id"), ClusterId);
-
-			FVector Position = FVector::ZeroVector;
-			const TSharedPtr<FJsonObject>* PosObj;
-			if ((*EntryObj)->TryGetObjectField(TEXT("position"), PosObj) && PosObj->IsValid())
-			{
-				(*PosObj)->TryGetNumberField(TEXT("x"), Position.X);
-				(*PosObj)->TryGetNumberField(TEXT("y"), Position.Y);
-				(*PosObj)->TryGetNumberField(TEXT("z"), Position.Z);
-			}
-
-			FVector Velocity = FVector::ZeroVector;
-			const TSharedPtr<FJsonObject>* VelObj;
-			if ((*EntryObj)->TryGetObjectField(TEXT("velocity"), VelObj) && VelObj->IsValid())
-			{
-				(*VelObj)->TryGetNumberField(TEXT("x"), Velocity.X);
-				(*VelObj)->TryGetNumberField(TEXT("y"), Velocity.Y);
-				(*VelObj)->TryGetNumberField(TEXT("z"), Velocity.Z);
-			}
-
-			Updated.Add(FArcaneEntityState(EntityId, ClusterId, Position, Velocity));
-		}
+		ConnectionState = EArcaneConnectionState::Failed;
+		OnConnectionFailed.Broadcast(FString::Printf(TEXT("%s (retries exhausted)"), *Reason));
+		return;
 	}
 
-	TArray<FString> RemovedIds;
-	const TArray<TSharedPtr<FJsonValue>>* RemovedArray;
-	if (JsonObject->TryGetArrayField(TEXT("removed"), RemovedArray))
+	BeginReconnect(Reason);
+}
+
+void UArcaneAdapterSubsystem::BeginReconnect(const FString& Reason)
+{
+	CurrentReconnectAttempt++;
+	ConnectionState = EArcaneConnectionState::Reconnecting;
+	NextReconnectAtSeconds = FPlatformTime::Seconds() + static_cast<double>(ReconnectDelaySeconds);
+	OnConnectionFailed.Broadcast(
+		FString::Printf(
+			TEXT("%s (retry %d/%d in %.1fs)"),
+			*Reason,
+			CurrentReconnectAttempt,
+			MaxReconnectAttempts,
+			ReconnectDelaySeconds
+		)
+	);
+}
+
+void UArcaneAdapterSubsystem::AttemptReconnectIfDue()
+{
+	if (ConnectionState != EArcaneConnectionState::Reconnecting || bManualDisconnect)
 	{
-		for (const TSharedPtr<FJsonValue>& IdVal : *RemovedArray)
-		{
-			FString Id;
-			if (IdVal->TryGetString(Id))
-			{
-				RemovedIds.Add(Id);
-			}
-		}
+		return;
+	}
+	if (FPlatformTime::Seconds() < NextReconnectAtSeconds)
+	{
+		return;
+	}
+	ConnectionState = EArcaneConnectionState::Joining;
+	StartJoinRequest();
+}
+
+void UArcaneAdapterSubsystem::ParseStateUpdateJson(const FString& JsonString)
+{
+	TArray<FArcaneEntityState> Updated;
+	TArray<FString> RemovedIds;
+	if (!ArcaneProtocolCodec::ParseStateUpdate(JsonString, Updated, RemovedIds))
+	{
+		UE_LOG(LogArcaneAdapter, Warning, TEXT("ParseStateUpdateJson: invalid JSON (first 200 chars): %s"), *JsonString.Left(200));
+		return;
 	}
 
 	ApplyStateUpdate(Updated, RemovedIds);
@@ -244,89 +254,17 @@ void UArcaneAdapterSubsystem::ApplyStateUpdate(const TArray<FArcaneEntityState>&
 		UE_LOG(LogArcaneAdapter, Log, TEXT("State update: +%d entities, -%d removed (total updates applied: %d)"), Updated.Num(), RemovedIds.Num(), TotalStateUpdatesApplied);
 		LastStateLogTime = Now;
 	}
-	FScopeLock Lock(&EntityCacheMutex);
-	// Keep previous snapshot for interpolation (smooth movement between server ticks)
-	PreviousEntityCache = EntityCache;
-	PreviousSnapshotTime = CurrentSnapshotTime;
-	CurrentSnapshotTime = FPlatformTime::Seconds();
-
-	// Server sends full snapshot every tick; replace cache with it so client stays in sync (no stale positions).
-	if (Updated.Num() > 0)
-	{
-		EntityCache.Empty();
-		for (const FArcaneEntityState& State : Updated)
-		{
-			EntityCache.Add(State.EntityId, State);
-		}
-	}
-	for (const FString& Id : RemovedIds)
-	{
-		EntityCache.Remove(Id);
-	}
+	EntityCache.ApplyStateUpdate(Updated, RemovedIds);
 }
 
 TArray<FArcaneEntityState> UArcaneAdapterSubsystem::GetEntitySnapshot() const
 {
-	FScopeLock Lock(&EntityCacheMutex);
-	TArray<FArcaneEntityState> Out;
-	for (const auto& Pair : EntityCache)
-	{
-		Out.Add(Pair.Value);
-	}
-	return Out;
+	return EntityCache.GetSnapshot();
 }
 
 TArray<FArcaneEntityState> UArcaneAdapterSubsystem::GetInterpolatedEntitySnapshot(float InterpolationDelaySeconds) const
 {
-	FScopeLock Lock(&EntityCacheMutex);
-	TArray<FArcaneEntityState> Out;
-	const double Now = FPlatformTime::Seconds();
-	const double RenderTime = Now - static_cast<double>(InterpolationDelaySeconds);
-
-	for (const auto& Pair : EntityCache)
-	{
-		const FArcaneEntityState& Current = Pair.Value;
-		const FArcaneEntityState* PrevState = PreviousEntityCache.Find(Pair.Key);
-
-		if (!PrevState || PreviousSnapshotTime >= CurrentSnapshotTime)
-		{
-			// No previous or same time: use current (or extrapolate forward)
-			if (RenderTime >= CurrentSnapshotTime && CurrentSnapshotTime > 0.0)
-			{
-				const double Dt = RenderTime - CurrentSnapshotTime;
-				FArcaneEntityState Extrapolated = Current;
-				Extrapolated.Position += Current.Velocity * Dt;
-				Out.Add(Extrapolated);
-			}
-			else
-			{
-				Out.Add(Current);
-			}
-			continue;
-		}
-
-		const double T0 = PreviousSnapshotTime;
-		const double T1 = CurrentSnapshotTime;
-		if (RenderTime <= T0)
-		{
-			Out.Add(*PrevState);
-			continue;
-		}
-		if (RenderTime >= T1)
-		{
-			Out.Add(Current);
-			continue;
-		}
-
-		const double T = (RenderTime - T0) / (T1 - T0);
-		FArcaneEntityState Interp;
-		Interp.EntityId = Current.EntityId;
-		Interp.ClusterId = Current.ClusterId;
-		Interp.Position = FMath::Lerp(PrevState->Position, Current.Position, static_cast<float>(T));
-		Interp.Velocity = FMath::Lerp(PrevState->Velocity, Current.Velocity, static_cast<float>(T));
-		Out.Add(Interp);
-	}
-	return Out;
+	return EntityCache.GetInterpolatedSnapshot(InterpolationDelaySeconds);
 }
 
 void UArcaneAdapterSubsystem::ApplyEntityStateToActor(AActor* Actor, const FArcaneEntityState& State, FVector WorldOrigin, float PositionScale) const
@@ -373,16 +311,10 @@ void UArcaneAdapterSubsystem::ApplyEntityStateToActor(AActor* Actor, const FArca
 
 void UArcaneAdapterSubsystem::SendPlayerState(FVector Position, FVector Velocity)
 {
-	if (!WebSocket.IsValid() || !WebSocket->IsConnected() || PlayerEntityId.IsEmpty())
+	if (!ConnectionClient.IsValid() || !ConnectionClient->IsConnected() || PlayerEntityId.IsEmpty())
 	{
 		return;
 	}
-	const float Scale = SendPositionScale > 0.f ? SendPositionScale : 1.f;
-	const FString Json = FString::Printf(
-		TEXT("{\"type\":\"PLAYER_STATE\",\"entity_id\":\"%s\",\"position\":{\"x\":%.4f,\"y\":%.4f,\"z\":%.4f},\"velocity\":{\"x\":%.4f,\"y\":%.4f,\"z\":%.4f}}"),
-		*PlayerEntityId,
-		Position.X / Scale, Position.Z / Scale, Position.Y / Scale,
-		Velocity.X / Scale, Velocity.Z / Scale, Velocity.Y / Scale
-	);
-	WebSocket->Send(Json);
+	const FString Json = ArcaneProtocolCodec::BuildPlayerStateJson(PlayerEntityId, Position, Velocity, SendPositionScale);
+	ConnectionClient->Send(Json);
 }

@@ -1,0 +1,6 @@
+"backend","tick_rate_hz","aps","duration_s","mode","server_physics","demo_entities","num_servers","players","total_calls","total_oks","total_errs","err_rate_pct","lat_avg_ms","pass"
+"spacetimedb_only","10","2","30","spread","True","0","1","250","93047","78976","0","0","5.87","True"
+"spacetimedb_only","10","2","30","spread","True","0","1","500","192308","163270","0","0","91.68","True"
+"spacetimedb_only","10","2","30","spread","True","0","1","750","302546","256758","0","0","68.28","True"
+"spacetimedb_only","10","2","30","spread","True","0","1","1000","418164","354805","0","0","183.61","True"
+"spacetimedb_only","10","2","30","spread","True","0","1","1250","542789","460476","0","0","688.35","False"

@@ -14,9 +14,13 @@ Unreal/ArcaneDemo/Saved/
 scripts/verification-loop/capture/screenshot*.png
 scripts/verification-loop/capture/game_log.txt
 scripts/benchmark/cluster_stderr.txt
+scripts/benchmark/benchmark_results.csv
+scripts/benchmark/*.png
 state.json
 viz.html
 demo.log
+*_output.txt
+swarm_*.csv
 
 .env
 *.pyc

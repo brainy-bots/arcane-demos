@@ -1,0 +1,25 @@
+arcane-cluster started cluster_id=ec21ce8c-27e3-493b-adbc-5ecd7e724067 neighbors=9 tick_rate=20Hz
+cluster WebSocket listening on ws://0.0.0.0:8096 (send PLAYER_STATE to push player entity)
+SpacetimeDB persist: http://127.0.0.1:3000/v1/database/arcane/call/set_entities (every 20 ticks = 1 Hz)
+subscribed to 9 neighbor topic(s)
+ArcaneServerStats: entities=0 clusters=1 tick_ms=0.76
+ArcaneServerStats: entities=4 clusters=1 tick_ms=0.72
+SpacetimeDB persist error: error sending request for url (http://127.0.0.1:3000/v1/database/arcane/call/set_entities)
+tick 100 seq 100
+SpacetimeDB persist error: error sending request for url (http://127.0.0.1:3000/v1/database/arcane/call/set_entities)
+ArcaneServerStats: entities=96 clusters=1 tick_ms=1.40
+SpacetimeDB persist error: error sending request for url (http://127.0.0.1:3000/v1/database/arcane/call/set_entities)
+SpacetimeDB persist error: error sending request for url (http://127.0.0.1:3000/v1/database/arcane/call/set_entities)
+ArcaneServerStats: entities=350 clusters=1 tick_ms=304.68
+SpacetimeDB persist error: error sending request for url (http://127.0.0.1:3000/v1/database/arcane/call/set_entities)
+SpacetimeDB persist error: error sending request for url (http://127.0.0.1:3000/v1/database/arcane/call/set_entities)
+tick 200 seq 200
+ArcaneServerStats: entities=394 clusters=1 tick_ms=26.98
+SpacetimeDB persist error: error sending request for url (http://127.0.0.1:3000/v1/database/arcane/call/set_entities)
+neighbor subscriber: get_message error: unexpected end of file
+SpacetimeDB persist error: error sending request for url (http://127.0.0.1:3000/v1/database/arcane/call/set_entities)
+ArcaneServerStats: entities=433 clusters=1 tick_ms=7.65
+SpacetimeDB persist error: error sending request for url (http://127.0.0.1:3000/v1/database/arcane/call/set_entities)
+SpacetimeDB persist error: error sending request for url (http://127.0.0.1:3000/v1/database/arcane/call/set_entities)
+ArcaneServerStats: entities=445 clusters=1 tick_ms=194.82
+tick 300 seq 300

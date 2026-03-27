@@ -1,0 +1,9 @@
+E:\code\pgp-demo\arcane-demos\spacetimedb_demo\spacetimedb\target\debug\deps\spacetimedb_primitives-68f3eb0d65b9beff.d: C:\Users\Martin\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\spacetimedb-primitives-2.0.5\src\lib.rs C:\Users\Martin\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\spacetimedb-primitives-2.0.5\src\attr.rs C:\Users\Martin\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\spacetimedb-primitives-2.0.5\src\col_list.rs C:\Users\Martin\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\spacetimedb-primitives-2.0.5\src\errno.rs C:\Users\Martin\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\spacetimedb-primitives-2.0.5\src\ids.rs
+
+E:\code\pgp-demo\arcane-demos\spacetimedb_demo\spacetimedb\target\debug\deps\libspacetimedb_primitives-68f3eb0d65b9beff.rmeta: C:\Users\Martin\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\spacetimedb-primitives-2.0.5\src\lib.rs C:\Users\Martin\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\spacetimedb-primitives-2.0.5\src\attr.rs C:\Users\Martin\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\spacetimedb-primitives-2.0.5\src\col_list.rs C:\Users\Martin\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\spacetimedb-primitives-2.0.5\src\errno.rs C:\Users\Martin\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\spacetimedb-primitives-2.0.5\src\ids.rs
+
+C:\Users\Martin\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\spacetimedb-primitives-2.0.5\src\lib.rs:
+C:\Users\Martin\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\spacetimedb-primitives-2.0.5\src\attr.rs:
+C:\Users\Martin\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\spacetimedb-primitives-2.0.5\src\col_list.rs:
+C:\Users\Martin\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\spacetimedb-primitives-2.0.5\src\errno.rs:
+C:\Users\Martin\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\spacetimedb-primitives-2.0.5\src\ids.rs:

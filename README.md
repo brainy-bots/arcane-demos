@@ -55,3 +55,5 @@ Runs both Arcane and default Unreal networking at several entity counts, parses 
 ## Versioning
 
 Demos are “living” examples; we don’t tag them. Pin to specific versions of **arcane** and **arcane-client-unreal** (e.g. `v0.1.0`) for reproducible builds.
+
+See `docs/COMPATIBILITY_MATRIX.md` for tested repo/version combinations and expected contract compatibility.

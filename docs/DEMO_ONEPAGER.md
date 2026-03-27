@@ -1,10 +1,14 @@
-# Arcane Demo — One-Pager (how to run and present)
+# Arcane Demo — One-Pager (how to run and show)
 
-**What it proves:** Central join, per-cluster simulation, Redis replication, single client view of the world. Scale = entity count + FPS. Library is plug-and-play: same character class and Unreal standards as a normal replicated game.
+Same demo, same scene — you choose **how** the game gets its entity data. Use this to show people how it works with **Arcane**, with **default Unreal** replication, or with **SpacetimeDB**.
+
+**Library:** Plug-and-play; same character class and Unreal standards. One plugin API applies server state; no custom entity types.
 
 ---
 
-## Run the demo (single-cluster, 200 entities)
+## 1. Show with Arcane (our library)
+
+**Backend:** Rust manager + cluster; client joins via HTTP, then WebSocket.
 
 1. **Start backend** (from repo root):
    ```powershell
@@ -12,47 +16,64 @@
    ```
    Two windows: manager (HTTP 8081) + cluster (WebSocket 8080). Leave them open.
 
-2. **Start the game:**
-   - Open `Unreal/ArcaneDemo/ArcaneDemo.uproject` in Unreal Editor and press **Play**, or
-   - From repo root: `.\scripts\verification-loop\run_verification.ps1 -BuildAndRunGame -CloseAfter` (builds, runs, captures, then closes).
+2. **Start the game:** Open the project in Unreal Editor and press **Play** (Arcane mode is default). Or: `.\scripts\verification-loop\run_verification.ps1 -BuildAndRunGame -StartBackend -CloseAfter`.
 
-3. **What you see:** Client joins via `GET http://127.0.0.1:8081/join`, connects to the cluster, receives replicated state. HUD shows **Entities: 200+ | FPS: …**. Humanoids (same mesh as player) move in path-like ways. One human player can move; others are simulated.
+3. **What you see:** Client joins via `GET http://127.0.0.1:8081/join`, connects to the cluster, receives state. HUD shows entity count. Humanoids (same mesh as player) move; one human player, rest simulated.
+
+**Multi-cluster (optional):** `docker compose up -d` then `.\scripts\run_demo_multi.ps1`. Same game; client gets merged state from 3 clusters; entities colorized by cluster.
 
 ---
 
-## Run the demo (multi-cluster, 150 entities)
+## 2. Show with default Unreal replication
 
-1. **Start Redis** (from repo root):
+**Backend:** None. Unreal listen server spawns replicated bots.
+
+1. **Start the game** with Unreal networking: in Editor, set Game Mode so **Use Arcane Networking** is **unchecked** (and **Use SpacetimeDB** unchecked). Set **Num Unreal Replicated Bots** (e.g. 50). Press Play as **Listen Server** (not client).
+
+   Or from command line (after building): launch the game with `-UseUnrealNetworking -ArcaneBenchmarkBots=50` (or another count).
+
+2. **What you see:** Same map and character look; entities are Unreal replicated actors. Compare behavior and scale to Arcane mode.
+
+---
+
+## 3. Show with SpacetimeDB
+
+**Backend:** Local SpacetimeDB server + our simulator; client subscribes to SpacetimeDB.
+
+1. **Start SpacetimeDB** in another terminal (from repo root, ensure SpacetimeDB CLI is on PATH):
    ```powershell
-   docker compose up -d
+   spacetime start
    ```
+   Or `spacetime dev --yes --server-only` for non-interactive. Leave it running.
 
-2. **Start backend:**
+2. **Start the simulator:**
    ```powershell
-   .\scripts\run_demo_multi.ps1
+   .\scripts\run_demo_spacetime.ps1
    ```
-   Four windows: manager + 3 clusters (50 entities each). Leave them open.
+   One window: publishes the module, then runs the entity simulator. Leave it open.
 
-3. **Start the game:** Same as above (Editor Play or `run_verification.ps1 -BuildAndRunGame -CloseAfter`). Or one command: `.\scripts\verification-loop\run_verification_multi.ps1` (starts multi-cluster, then runs verification).
+3. **Start the game in SpacetimeDB mode:** In Editor, set Game Mode so **Use Arcane Networking** is **unchecked** and **Use SpacetimeDB Networking** is **checked**. Press Play.
 
-4. **What you see:** Client is assigned to one cluster; it receives merged state from all 3. HUD shows entity count + FPS. When the snapshot has distinct cluster IDs, entities are colorized by cluster (red/green/blue = ownership).
+   Or: `.\scripts\verification-loop\run_verification.ps1 -BuildAndRunGame -UseSpacetimeDB -StartBackend -CloseAfter` (starts simulator for you; SpacetimeDB server must already be running).
+
+4. **What you see:** Same map and character look; entities come from SpacetimeDB subscription. (Full entity display requires SpacetimeDB Unreal plugin + generated bindings; otherwise stub shows connection only.)
 
 ---
 
 ## What to point out when presenting
 
-- **Join flow:** Client hits manager `GET /join`, gets cluster address, connects via WebSocket.
-- **Replication:** All entity state (position, velocity) streams from cluster(s); Redis syncs state across clusters in multi-cluster mode.
-- **Scale:** Single-cluster ~200 entities at ~40 FPS; multi-cluster ~150+ entities at ~20–26 FPS (depends on hardware).
-- **Library:** Unreal client uses the same character class as the player; one plugin API (`ApplyEntityStateToActor`) applies server state. No custom entity types required.
+- **Same demo, three backends:** Arcane (manager + cluster + Redis for multi), default Unreal (listen server), SpacetimeDB (local server + simulator). Switch mode and run again to compare.
+- **Join / connect:** Arcane = HTTP join then WebSocket; Unreal = built-in; SpacetimeDB = SDK connect + subscribe.
+- **Library:** One client code path for “apply state to actor”; only the data source (Arcane adapter, Unreal replication, or SpacetimeDB table) changes.
 
 ---
 
 ## Quick reference
 
-| Mode           | Backend                          | Verification (one command) |
-|----------------|----------------------------------|-----------------------------|
-| Single-cluster | `.\scripts\run_demo.ps1`         | `.\scripts\verification-loop\run_verification.ps1 -BuildAndRunGame -StartBackend -CloseAfter` |
-| Multi-cluster  | `docker compose up -d` then `.\scripts\run_demo_multi.ps1` | `.\scripts\verification-loop\run_verification_multi.ps1` |
+| Show with     | Backend / prerequisite              | Run game |
+|---------------|--------------------------------------|----------|
+| **Arcane**    | `.\scripts\run_demo.ps1`             | Play in Editor (default), or `run_verification.ps1 -BuildAndRunGame -StartBackend -CloseAfter` |
+| **Unreal**    | None (listen server)                 | Play as Listen Server with “Use Arcane Networking” off |
+| **SpacetimeDB** | `spacetime start` then `.\scripts\run_demo_spacetime.ps1` | Play with “Use SpacetimeDB Networking” on, or `run_verification.ps1 -BuildAndRunGame -UseSpacetimeDB -StartBackend -CloseAfter` |
 
-Log line when synced: `Arcane Demo ready: N entities visible, replication active.`
+Log when synced (Arcane): `Arcane Demo ready: N entities visible, replication active.`

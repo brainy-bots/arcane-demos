@@ -2,7 +2,13 @@
 
 What we still need to do so the demo **proves the library capabilities**. Then a separate phase for making it look better and adding gameplay.
 
+**Current focus:** Make it work and find the limits first — get Arcane, Unreal, and SpacetimeDB modes running reliably and discover where each hits its limit (entity count, playability). Presentation (e.g. a video showing how it works plus a chart) comes later; we are not storing recorded benchmark results for now.
+
 **Goal (DEMO_GOAL.md):** Show join, multi-cluster, replication, and client the way a production MMO would; scale toward 200–400+ visible entities.
+
+**Next steps for progress:**
+- **Phase 1b:** Run `.\scripts\benchmark\run_benchmark.ps1 -Mode Unreal` then `-Mode Arcane` (or `-Mode Both`). Note FPS/entity counts where each becomes unplayable; document in this file or DEMO_GOAL.
+- **Phase 1c:** Run SpacetimeDB once: `spacetime start` → `.\scripts\run_demo_spacetime.ps1` → launch game with Use SpacetimeDB Networking on (or `run_verification.ps1 -BuildAndRunGame -CloseAfter -UseSpacetimeDB -StartBackend`). Then run benchmark with `-Mode SpacetimeDB` to find its limit.
 
 **Constraint:** The demo is a **library showcase**. Keep it plug-and-play: use only the plugin's public API (Connect, Tick, GetEntitySnapshot, ApplyEntityStateToActor); same character class and Unreal standards as a normal replicated game. No new library APIs for demo-only features.
 
@@ -22,31 +28,33 @@ What we still need to do so the demo **proves the library capabilities**. Then a
 
 ---
 
-## Phase 1b: Prove library beats baseline (benchmark + chart)
+## Phase 1b: Find limits (Arcane vs Unreal)
+
+Make both modes run; push entity count until you find where each becomes unplayable or breaks. No stored results for now — we use this to know the limits. Later: optional video + chart for presentation.
 
 | # | Step | Status |
 |---|------|--------|
-| 1 | **Run benchmark (Unreal mode)** | ⬜ | `.\scripts\benchmark\run_benchmark.ps1 -Mode Unreal` — no backend; runs game at 20, 50, 100, 150, 200 bots, parses FPS from log, writes CSV. |
-| 2 | **Run benchmark (Arcane mode)** | ⬜ | `.\scripts\benchmark\run_benchmark.ps1 -Mode Arcane` — starts backend per entity count, runs game, parses FPS, appends to CSV. (Or run `-Mode Both` once.) |
-| 3 | **Generate and publish chart** | ⬜ | Script produces `scripts/benchmark/benchmark_results.png` (Entities vs FPS, Arcane vs Unreal). Add to repo or docs; use it to show where each hits its limit. |
-| 4 | **Document “library beats baseline”** | ⬜ | One line in DEMO_GOAL or README: e.g. “At 200 entities, Arcane ~X FPS vs Unreal ~Y FPS” and “Max playable entities: Arcane N vs Unreal M.” |
+| 1 | **Run and find Unreal limit** | ⬜ | Run game in Unreal mode at 20, 50, 100, 150, 200+ bots (Game Mode: Use Arcane off; Listen Server). Note where FPS or stability drops. |
+| 2 | **Run and find Arcane limit** | ⬜ | Run game in Arcane mode with `run_demo.ps1` at increasing `-EntityCount`. Note where it hits the limit. |
+| 3 | **Compare** | ⬜ | Same machine, same scene — where does each mode max out? (Chart/video for presentation later, not stored CSV.) |
 
-**Phase 1b complete** when the chart exists and the comparison is documented. That is the proof.
+**Phase 1b complete** when we know the limits for both; presentation (video + chart) is a later step.
 
 ---
 
-## Phase 1c: SpacetimeDB-only networking (measure SpacetimeDB limit)
+## Phase 1c: SpacetimeDB — make it work, find its limit
 
-To compare against SpacetimeDB (a target we aim to improve on), add a **SpacetimeDB-only** path: same scenario (N entities, same place, 20 Hz), but state flows through SpacetimeDB instead of Arcane. Then run the same benchmark and record FPS vs entity count for SpacetimeDB.
+Same demo with SpacetimeDB as the data source; get it running and find where it hits its limit. Presentation (video + chart) later.
 
 | # | Step | Status |
 |---|------|--------|
-| 1 | **SpacetimeDB module** | ⬜ | Spade: `Entity` table + reducer(s) for insert/update. Publish to local `spacetime start`. |
-| 2 | **External simulator** | ⬜ | Rust (or other) process: run demo agents at 20 Hz, invoke SpacetimeDB reducer each tick with entity state. Env: `DEMO_ENTITIES`, optional `STRESS_RADIUS`. |
-| 3 | **Unreal SpacetimeDB mode** | ⬜ | Use SpacetimeDB Unreal SDK; subscribe to `Entity` table; spawn/update actors and apply position/velocity (same display as Arcane). FPS logging in same format for benchmark. |
-| 4 | **Benchmark SpacetimeDB** | ⬜ | Script or `run_benchmark.ps1 -Mode SpacetimeDB`: start SpacetimeDB, publish, run simulator, run game, parse log, add CSV row. Chart: Arcane vs Unreal vs SpacetimeDB. |
+| 1 | **SpacetimeDB module + simulator** | ✅ | Module and `run_demo_spacetime.ps1` in place. Publish to local `spacetime start`. |
+| 2 | **Unreal SpacetimeDB mode** | ✅ | Full display: SpacetimeDB plugin + bindings in `ModuleBindings/`; `SpacetimeDBEntityDisplay` subscribes to `Entity`, applies to actors. Codegen from `spacetimedb_demo/spacetimedb`; run `spacetime generate -l unrealcpp` when module schema changes. |
+| 3 | **Find SpacetimeDB limit** | ⬜ | Run at increasing entity count; note where it becomes unplayable or breaks. Compare to Arcane/Unreal limits (for presentation later, e.g. video + chart). |
 
-**Plan and checklist:** `docs/SPACETIMEDB_NETWORKING_PLAN.md`.
+**Verify SpacetimeDB end-to-end:** In one terminal run `spacetime start`. In another: `.\scripts\run_demo_spacetime.ps1`. Then run the game with "Use SpacetimeDB Networking" on, or: `.\scripts\verification-loop\run_verification.ps1 -BuildAndRunGame -CloseAfter -UseSpacetimeDB -StartBackend`.
+
+**SpacetimeDB-only setup + finding limits (e.g. 64 GB / 16 cores):** See **`docs/SPACETIMEDB_ONLY_SETUP.md`**. Run `spacetime start` then: `.\scripts\benchmark\run_benchmark.ps1 -Mode SpacetimeDB -SpacetimeDBLimitFinding` to benchmark at 100, 200, 500, 1000, 2000, 5000 entities and get CSV + chart.
 
 ---
 
@@ -80,7 +88,7 @@ Phase 2 is about **looking good and feeling like a game**; Phase 1 is about **pr
 - **Verification (multi-cluster):** `.\scripts\verification-loop\run_verification_multi.ps1` (starts multi-cluster + runs verification). Prereq: Redis running, single-cluster closed.
 - **200-entity test:** Restart single-cluster (`run_demo.ps1`), then run verification; note FPS in log/HUD and add to DEMO_GOAL.
 - **Demo ready log:** `Arcane Demo ready: N entities visible, replication active.` in game log when synced.
-- **Benchmark:** `.\scripts\benchmark\run_benchmark.ps1` (optional `-Mode Unreal` or `-Mode Arcane` or `-Mode Both`). Output: `scripts/benchmark/benchmark_results.csv` and `benchmark_results.png`.
+- **Ad-hoc numbers (optional):** `.\scripts\benchmark\run_benchmark.ps1` can produce CSV/chart; we are not storing results for now — focus is make it work and find limits; presentation (video + chart) later.
 
 ---
 

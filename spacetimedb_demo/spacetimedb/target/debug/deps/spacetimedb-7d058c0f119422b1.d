@@ -1,0 +1,11 @@
+E:\code\pgp-demo\arcane-demos\spacetimedb_demo\spacetimedb\target\debug\deps\spacetimedb-7d058c0f119422b1.d: C:\Users\Martin\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\spacetimedb-2.0.5\src\lib.rs C:\Users\Martin\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\spacetimedb-2.0.5\src\log_stopwatch.rs C:\Users\Martin\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\spacetimedb-2.0.5\src\logger.rs C:\Users\Martin\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\spacetimedb-2.0.5\src\rng.rs C:\Users\Martin\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\spacetimedb-2.0.5\src\rt.rs C:\Users\Martin\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\spacetimedb-2.0.5\src\table.rs C:\Users\Martin\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\spacetimedb-2.0.5\src\../README.md
+
+E:\code\pgp-demo\arcane-demos\spacetimedb_demo\spacetimedb\target\debug\deps\libspacetimedb-7d058c0f119422b1.rmeta: C:\Users\Martin\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\spacetimedb-2.0.5\src\lib.rs C:\Users\Martin\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\spacetimedb-2.0.5\src\log_stopwatch.rs C:\Users\Martin\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\spacetimedb-2.0.5\src\logger.rs C:\Users\Martin\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\spacetimedb-2.0.5\src\rng.rs C:\Users\Martin\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\spacetimedb-2.0.5\src\rt.rs C:\Users\Martin\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\spacetimedb-2.0.5\src\table.rs C:\Users\Martin\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\spacetimedb-2.0.5\src\../README.md
+
+C:\Users\Martin\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\spacetimedb-2.0.5\src\lib.rs:
+C:\Users\Martin\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\spacetimedb-2.0.5\src\log_stopwatch.rs:
+C:\Users\Martin\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\spacetimedb-2.0.5\src\logger.rs:
+C:\Users\Martin\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\spacetimedb-2.0.5\src\rng.rs:
+C:\Users\Martin\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\spacetimedb-2.0.5\src\rt.rs:
+C:\Users\Martin\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\spacetimedb-2.0.5\src\table.rs:
+C:\Users\Martin\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\spacetimedb-2.0.5\src\../README.md:

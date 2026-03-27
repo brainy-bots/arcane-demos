@@ -4,3 +4,10 @@
 pub mod cluster_demo;
 
 pub use cluster_demo::{agents_to_entries, create_demo_agents, tick_demo_agents, DemoAgent};
+
+#[cfg(feature = "swarm-sdk")]
+#[path = "module_bindings/mod.rs"]
+pub mod module_bindings;
+
+#[cfg(feature = "swarm-sdk")]
+pub mod swarm;

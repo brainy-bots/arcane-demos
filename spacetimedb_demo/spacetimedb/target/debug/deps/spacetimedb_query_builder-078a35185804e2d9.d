@@ -1,0 +1,8 @@
+E:\code\pgp-demo\arcane-demos\spacetimedb_demo\spacetimedb\target\debug\deps\spacetimedb_query_builder-078a35185804e2d9.d: C:\Users\Martin\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\spacetimedb-query-builder-2.0.5\src\lib.rs C:\Users\Martin\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\spacetimedb-query-builder-2.0.5\src\expr.rs C:\Users\Martin\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\spacetimedb-query-builder-2.0.5\src\join.rs C:\Users\Martin\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\spacetimedb-query-builder-2.0.5\src\table.rs
+
+E:\code\pgp-demo\arcane-demos\spacetimedb_demo\spacetimedb\target\debug\deps\libspacetimedb_query_builder-078a35185804e2d9.rmeta: C:\Users\Martin\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\spacetimedb-query-builder-2.0.5\src\lib.rs C:\Users\Martin\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\spacetimedb-query-builder-2.0.5\src\expr.rs C:\Users\Martin\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\spacetimedb-query-builder-2.0.5\src\join.rs C:\Users\Martin\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\spacetimedb-query-builder-2.0.5\src\table.rs
+
+C:\Users\Martin\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\spacetimedb-query-builder-2.0.5\src\lib.rs:
+C:\Users\Martin\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\spacetimedb-query-builder-2.0.5\src\expr.rs:
+C:\Users\Martin\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\spacetimedb-query-builder-2.0.5\src\join.rs:
+C:\Users\Martin\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\spacetimedb-query-builder-2.0.5\src\table.rs:

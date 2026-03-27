@@ -20,6 +20,10 @@
 #
 #   # Skip server check (e.g. no backend needed)
 #   .\scripts\verification-loop\run_verification.ps1 -BuildAndRunGame -SkipServerCheck -CloseAfter
+#
+#   # SpacetimeDB mode: use SpacetimeDB backend + game -UseSpacetimeDBNetworking (run "spacetime start" in another terminal first, or use -StartBackend to start simulator)
+#   .\scripts\verification-loop\run_verification.ps1 -BuildAndRunGame -CloseAfter -UseSpacetimeDB
+#   .\scripts\verification-loop\run_verification.ps1 -BuildAndRunGame -CloseAfter -UseSpacetimeDB -StartBackend
 
 param(
     [string] $ExePath = "",
@@ -37,6 +41,7 @@ param(
     [string] $WindowTitle = "ArcaneDemo",
     [switch] $StartBackend,
     [switch] $SkipServerCheck,
+    [switch] $UseSpacetimeDB,
     [switch] $Beep,
     [switch] $BlockInput,
     [switch] $MinimizeAfterInput,
@@ -58,9 +63,23 @@ if (-not (Test-Path $PythonScript)) {
 }
 
 $GameProcess = $null
+$SpacetimeDBBackendProcess = $null
 
-# ---- 1) Verify manager + cluster are running (when we need backend for the game)
-# This check does NOT start any process or open any terminal; it only does in-process HTTP + TCP.
+# ---- 1) Backend: Arcane (manager + cluster) or SpacetimeDB (spacetime start + simulator)
+# This check does NOT start any process or open any terminal; it only does in-process HTTP + TCP (or TCP for SpacetimeDB).
+function Test-SpacetimeDBRunning {
+    param([int] $Port = 3000)
+    try {
+        $tcp = New-Object System.Net.Sockets.TcpClient
+        $tcp.ConnectAsync("127.0.0.1", $Port).Wait(2000) | Out-Null
+        $ok = $tcp.Connected
+        try { $tcp.Dispose() } catch { }
+        return $ok
+    } catch {
+        return $false
+    }
+}
+
 function Test-ServersRunning {
     param([string]$ManagerBaseUrl)
     $joinUrl = "$ManagerBaseUrl/join"
@@ -87,33 +106,76 @@ function Test-ServersRunning {
 }
 
 if (($BuildAndRunGame -or $RunPIE) -and -not $SkipServerCheck) {
-    if ($StartBackend) {
-        # Only start backend if not already running — avoid spawning extra terminals every run
-        if (Test-ServersRunning -ManagerBaseUrl $ManagerUrl) {
-            Write-Host "Manager and cluster already running, skipping start."
-        } else {
-            Write-Host "Starting manager + cluster in background..."
-            $runDemo = Join-Path $RepoRoot "scripts\run_demo.ps1"
-            if (-not (Test-Path $runDemo)) { Write-Error "Not found: $runDemo" }
-            Start-Process powershell -ArgumentList "-NoExit", "-File", $runDemo -WorkingDirectory $RepoRoot
-            Start-Sleep -Seconds 20
+    if ($UseSpacetimeDB) {
+        # SpacetimeDB path: optionally start simulator; verify SpacetimeDB server (port 3000) is reachable.
+        $runDemoSpacetime = Join-Path $RepoRoot "scripts\run_demo_spacetime.ps1"
+        if ($StartBackend) {
+            if (Test-SpacetimeDBRunning -Port 3000) {
+                Write-Host "SpacetimeDB (port 3000) reachable. Starting simulator in background..."
+                if (Test-Path $runDemoSpacetime) {
+                    $SpacetimeDBBackendProcess = Start-Process powershell -ArgumentList "-NoExit", "-Command", "& '$runDemoSpacetime' -NoPublish -EntityCount 200" -WorkingDirectory $RepoRoot -PassThru
+                    Start-Sleep -Seconds 15
+                } else {
+                    Write-Warning "run_demo_spacetime.ps1 not found; ensure SpacetimeDB + simulator are running manually."
+                }
+            } else {
+                Write-Host "Starting SpacetimeDB demo (publish + simulator)..."
+                Write-Host "  Prereq: run 'spacetime start' in another terminal first. Starting simulator script (it will publish then run sim)."
+                if (Test-Path $runDemoSpacetime) {
+                    $SpacetimeDBBackendProcess = Start-Process powershell -ArgumentList "-NoExit", "-Command", "& '$runDemoSpacetime' -EntityCount 200" -WorkingDirectory $RepoRoot -PassThru
+                    Start-Sleep -Seconds 35
+                } else {
+                    Write-Error "Not found: $runDemoSpacetime. Run 'spacetime start' and run_demo_spacetime.ps1 manually, or add -SkipServerCheck."
+                }
+            }
         }
-    }
-    Write-Host "Verifying manager and cluster are running..."
-    $retries = 5
-    while ($retries -gt 0) {
-        if (Test-ServersRunning -ManagerBaseUrl $ManagerUrl) {
-            Write-Host "  Manager and cluster OK ($ManagerUrl/join -> cluster reachable)."
-            break
+        Write-Host "Verifying SpacetimeDB (port 3000)..."
+        $retries = 5
+        while ($retries -gt 0) {
+            if (Test-SpacetimeDBRunning -Port 3000) {
+                Write-Host "  SpacetimeDB OK (port 3000 reachable)."
+                break
+            }
+            $retries--
+            if ($retries -eq 0) {
+                Write-Host "SpacetimeDB not reachable on port 3000. Run 'spacetime start' in another terminal, then run_demo_spacetime.ps1 (or use -StartBackend)."
+                exit 1
+            }
+            Write-Host "  Waiting 3s before retry..."
+            Start-Sleep -Seconds 3
         }
-        $retries--
-        if ($retries -eq 0) {
-            Write-Host "Manager or cluster not reachable. Start them with: .\scripts\run_demo.ps1"
-            Write-Host "Or run this script with -StartBackend to start them automatically, or -SkipServerCheck to skip."
-            exit 1
+        if ($BuildAndRunGame -and ($GameArgs | Where-Object { $_ -like "*UseSpacetimeDBNetworking*" }).Count -eq 0) {
+            $GameArgs = $GameArgs + @("-UseSpacetimeDBNetworking")
         }
-        Write-Host "  Waiting 3s before retry..."
-        Start-Sleep -Seconds 3
+    } else {
+        # Arcane path
+        if ($StartBackend) {
+            if (Test-ServersRunning -ManagerBaseUrl $ManagerUrl) {
+                Write-Host "Manager and cluster already running, skipping start."
+            } else {
+                Write-Host "Starting manager + cluster in background..."
+                $runDemo = Join-Path $RepoRoot "scripts\run_demo.ps1"
+                if (-not (Test-Path $runDemo)) { Write-Error "Not found: $runDemo" }
+                Start-Process powershell -ArgumentList "-NoExit", "-File", $runDemo -WorkingDirectory $RepoRoot
+                Start-Sleep -Seconds 20
+            }
+        }
+        Write-Host "Verifying manager and cluster are running..."
+        $retries = 5
+        while ($retries -gt 0) {
+            if (Test-ServersRunning -ManagerBaseUrl $ManagerUrl) {
+                Write-Host "  Manager and cluster OK ($ManagerUrl/join -> cluster reachable)."
+                break
+            }
+            $retries--
+            if ($retries -eq 0) {
+                Write-Host "Manager or cluster not reachable. Start them with: .\scripts\run_demo.ps1"
+                Write-Host "Or run this script with -StartBackend to start them automatically, or -SkipServerCheck to skip."
+                exit 1
+            }
+            Write-Host "  Waiting 3s before retry..."
+            Start-Sleep -Seconds 3
+        }
     }
 }
 
@@ -244,10 +306,14 @@ if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
 }
 
-# ---- Close game/editor if we started it with BuildAndRunGame or RunPIE and -CloseAfter
+# ---- Close game/editor (and SpacetimeDB simulator if we started it) when -CloseAfter
 if ($CloseAfter -and $GameProcess -and -not $GameProcess.HasExited) {
     Write-Host "Closing process (game or editor)..."
     $GameProcess.Kill()
+}
+if ($CloseAfter -and $SpacetimeDBBackendProcess -and -not $SpacetimeDBBackendProcess.HasExited) {
+    Write-Host "Closing SpacetimeDB simulator..."
+    $SpacetimeDBBackendProcess.Kill()
 }
 
 Write-Host ""
