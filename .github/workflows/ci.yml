@@ -14,7 +14,9 @@ jobs:
 
       # crates/arcane-demo uses path ../../../arcane (parent of repo root). actions/checkout cannot leave the workspace, so clone explicitly.
       - name: Clone arcane (path dependency)
-        run: git clone --depth 1 https://github.com/brainy-bots/arcane.git "${GITHUB_WORKSPACE}/../arcane"
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: git clone --depth 1 "https://x-access-token:${TOKEN}@github.com/brainy-bots/arcane.git" "${GITHUB_WORKSPACE}/../arcane"
 
       - name: Install toolchain
         uses: dtolnay/rust-toolchain@stable
