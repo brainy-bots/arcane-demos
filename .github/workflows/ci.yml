@@ -12,12 +12,9 @@ jobs:
       - name: Checkout arcane-demos
         uses: actions/checkout@v4
 
-      # arcane-demo depends on ../../../arcane (sibling of this repo root on disk).
-      - name: Checkout arcane (path dependency)
-        uses: actions/checkout@v4
-        with:
-          repository: brainy-bots/arcane
-          path: ../arcane
+      # crates/arcane-demo uses path ../../../arcane (parent of repo root). actions/checkout cannot leave the workspace, so clone explicitly.
+      - name: Clone arcane (path dependency)
+        run: git clone --depth 1 https://github.com/brainy-bots/arcane.git "${GITHUB_WORKSPACE}/../arcane"
 
       - name: Install toolchain
         uses: dtolnay/rust-toolchain@stable
