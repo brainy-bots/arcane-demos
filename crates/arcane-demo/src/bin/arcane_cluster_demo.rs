@@ -22,9 +22,10 @@ fn parse_uuids(s: &str) -> Vec<Uuid> {
 }
 
 fn main() -> Result<(), String> {
-    let cluster_id = env::var("CLUSTER_ID")
-        .map_err(|_| "CLUSTER_ID env var required (UUID)".to_string())?;
-    let cluster_id = Uuid::parse_str(&cluster_id).map_err(|e| format!("invalid CLUSTER_ID: {}", e))?;
+    let cluster_id =
+        env::var("CLUSTER_ID").map_err(|_| "CLUSTER_ID env var required (UUID)".to_string())?;
+    let cluster_id =
+        Uuid::parse_str(&cluster_id).map_err(|e| format!("invalid CLUSTER_ID: {}", e))?;
 
     let redis_url = env::var("REDIS_URL").unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string());
     let neighbor_ids = env::var("NEIGHBOR_IDS")
@@ -46,7 +47,10 @@ fn main() -> Result<(), String> {
         .and_then(|s| s.parse::<f64>().ok())
         .filter(|&r| r > 0.0);
     if let Some(r) = stress_radius {
-        eprintln!("stress mode: entities confined to radius {} around center (same-place)", r);
+        eprintln!(
+            "stress mode: entities confined to radius {} around center (same-place)",
+            r
+        );
     }
     let mut demo_agents = if n_demo > 0 {
         eprintln!("demo agents: {} (gravity, jump, wander)", n_demo);

@@ -58,7 +58,9 @@ fn entity_seed(u: &Uuid) -> u32 {
 /// Deterministic pseudo-random in [0, 1) from seed and tick (for waypoint picking in tick).
 fn drand(seed: u32, tick: u64) -> f64 {
     let t = tick.wrapping_mul(31).wrapping_add(seed as u64);
-    let x = (t.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407)) as u32;
+    let x = (t
+        .wrapping_mul(6364136223846793005)
+        .wrapping_add(1442695040888963407)) as u32;
     x as f64 / (u32::MAX as f64 + 1.0)
 }
 
@@ -76,7 +78,8 @@ fn pick_walk_direction(a: &mut DemoAgent, tick: u64) {
     let angle = drand(a.seed, tick) * std::f64::consts::TAU;
     a.walk_dir_x = angle.cos();
     a.walk_dir_z = angle.sin();
-    a.walk_ticks_remaining = STATE_DURATION_TICKS_MIN + (drand(a.seed.wrapping_add(1), tick) * (STATE_DURATION_TICKS_RANGE as f64)) as u64;
+    a.walk_ticks_remaining = STATE_DURATION_TICKS_MIN
+        + (drand(a.seed.wrapping_add(1), tick) * (STATE_DURATION_TICKS_RANGE as f64)) as u64;
 }
 
 /// Pick next move state: stand / walk / run (weighted so not everyone runs).
@@ -89,12 +92,17 @@ fn pick_move_state(seed: u32, tick: u64) -> (MoveState, u64) {
     } else {
         MoveState::Run
     };
-    let duration = STATE_DURATION_TICKS_MIN + (drand(seed.wrapping_add(2), tick) * (STATE_DURATION_TICKS_RANGE as f64)) as u64;
+    let duration = STATE_DURATION_TICKS_MIN
+        + (drand(seed.wrapping_add(2), tick) * (STATE_DURATION_TICKS_RANGE as f64)) as u64;
     (state, duration)
 }
 
 /// When stress_radius is Some(r), agents spawn and stay in a box [center±r] for "same place" stress.
-pub fn create_demo_agents(count: u32, cluster_id: Uuid, stress_radius: Option<f64>) -> Vec<DemoAgent> {
+pub fn create_demo_agents(
+    count: u32,
+    cluster_id: Uuid,
+    stress_radius: Option<f64>,
+) -> Vec<DemoAgent> {
     let _ = cluster_id;
     let mut rng = rand::thread_rng();
     let spawn_r = stress_radius.unwrap_or(SPAWN_RADIUS);
@@ -110,7 +118,8 @@ pub fn create_demo_agents(count: u32, cluster_id: Uuid, stress_radius: Option<f6
             let walk_dir_x = dir_angle.cos();
             let walk_dir_z = dir_angle.sin();
             let (move_state, state_ticks_remaining) = pick_move_state(seed, 0);
-            let walk_ticks_remaining = STATE_DURATION_TICKS_MIN + (rng.gen::<f64>() * STATE_DURATION_TICKS_RANGE as f64) as u64;
+            let walk_ticks_remaining = STATE_DURATION_TICKS_MIN
+                + (rng.gen::<f64>() * STATE_DURATION_TICKS_RANGE as f64) as u64;
             DemoAgent {
                 entity_id,
                 x,

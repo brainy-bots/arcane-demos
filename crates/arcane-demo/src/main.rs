@@ -21,13 +21,13 @@ const STEER: f64 = 0.025;
 const WANDER: f64 = 0.4;
 const DAMP: f64 = 0.92;
 const MAX_SPEED: f64 = 2.2;
-const SOLO_WANDER: f64 = 0.8;   // solo entities: random step size per tick
+const SOLO_WANDER: f64 = 0.8; // solo entities: random step size per tick
 
 #[derive(Clone, Copy)]
 enum PathKind {
-    Linear { speed: f64 },           // speed 1.0 = full path in N_TICKS; 0.5 = half speed, etc.
-    Wander { drift: f64 },          // center random-walks
-    Curve { period_ticks: f64 },    // orbit around (start+end)/2, radius from start→end
+    Linear { speed: f64 }, // speed 1.0 = full path in N_TICKS; 0.5 = half speed, etc.
+    Wander { drift: f64 }, // center random-walks
+    Curve { period_ticks: f64 }, // orbit around (start+end)/2, radius from start→end
     Meander { speed: f64, wobble: f64 }, // linear + perpendicular wobble
 }
 
@@ -60,33 +60,199 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let enemies: Vec<(u8, u8)> = vec![(0, 1), (1, 2)];
     use PathKind::*;
     let groups: Vec<GroupSpec> = vec![
-        GroupSpec { guild: 0, party: 0, n_entities: 4, start_x: 60.0, start_z: 60.0, end_x: 280.0, end_z: 280.0, path: Linear { speed: 0.9 } },
-        GroupSpec { guild: 1, party: 1, n_entities: 4, start_x: 340.0, start_z: 340.0, end_x: 120.0, end_z: 120.0, path: Linear { speed: 1.2 } },
-        GroupSpec { guild: 2, party: 2, n_entities: 3, start_x: 200.0, start_z: 40.0, end_x: 200.0, end_z: 360.0, path: Linear { speed: 0.6 } },
-        GroupSpec { guild: 0, party: 3, n_entities: 3, start_x: 80.0, start_z: 320.0, end_x: 260.0, end_z: 80.0, path: Meander { speed: 0.7, wobble: 25.0 } },
-        GroupSpec { guild: 3, party: 4, n_entities: 4, start_x: 320.0, start_z: 60.0, end_x: 80.0, end_z: 340.0, path: Linear { speed: 1.0 } },
-        GroupSpec { guild: 1, party: 5, n_entities: 3, start_x: 100.0, start_z: 220.0, end_x: 280.0, end_z: 180.0, path: Curve { period_ticks: 400.0 } },
-        GroupSpec { guild: 2, party: 6, n_entities: 4, start_x: 40.0, start_z: 200.0, end_x: 360.0, end_z: 200.0, path: Linear { speed: 0.5 } },
-        GroupSpec { guild: 4, party: 7, n_entities: 3, start_x: 350.0, start_z: 200.0, end_x: 50.0, end_z: 200.0, path: Meander { speed: 0.4, wobble: 40.0 } },
-        GroupSpec { guild: 0, party: 8, n_entities: 3, start_x: 150.0, start_z: 150.0, end_x: 250.0, end_z: 250.0, path: Wander { drift: 1.2 } },
-        GroupSpec { guild: 1, party: 9, n_entities: 3, start_x: 250.0, start_z: 250.0, end_x: 150.0, end_z: 150.0, path: Wander { drift: 1.0 } },
-        GroupSpec { guild: 3, party: 10, n_entities: 4, start_x: 50.0, start_z: 300.0, end_x: 350.0, end_z: 100.0, path: Linear { speed: 1.1 } },
-        GroupSpec { guild: 2, party: 11, n_entities: 3, start_x: 300.0, start_z: 50.0, end_x: 100.0, end_z: 350.0, path: Curve { period_ticks: 350.0 } },
-        GroupSpec { guild: 4, party: 12, n_entities: 4, start_x: 180.0, start_z: 180.0, end_x: 220.0, end_z: 220.0, path: Wander { drift: 0.8 } },
-        GroupSpec { guild: 0, party: 13, n_entities: 3, start_x: 100.0, start_z: 100.0, end_x: 300.0, end_z: 300.0, path: Linear { speed: 0.3 } },
-        GroupSpec { guild: 5, party: 14, n_entities: 3, start_x: 200.0, start_z: 50.0, end_x: 200.0, end_z: 350.0, path: Linear { speed: 0.8 } },
-        GroupSpec { guild: 5, party: 15, n_entities: 4, start_x: 50.0, start_z: 200.0, end_x: 350.0, end_z: 200.0, path: Meander { speed: 0.6, wobble: 30.0 } },
+        GroupSpec {
+            guild: 0,
+            party: 0,
+            n_entities: 4,
+            start_x: 60.0,
+            start_z: 60.0,
+            end_x: 280.0,
+            end_z: 280.0,
+            path: Linear { speed: 0.9 },
+        },
+        GroupSpec {
+            guild: 1,
+            party: 1,
+            n_entities: 4,
+            start_x: 340.0,
+            start_z: 340.0,
+            end_x: 120.0,
+            end_z: 120.0,
+            path: Linear { speed: 1.2 },
+        },
+        GroupSpec {
+            guild: 2,
+            party: 2,
+            n_entities: 3,
+            start_x: 200.0,
+            start_z: 40.0,
+            end_x: 200.0,
+            end_z: 360.0,
+            path: Linear { speed: 0.6 },
+        },
+        GroupSpec {
+            guild: 0,
+            party: 3,
+            n_entities: 3,
+            start_x: 80.0,
+            start_z: 320.0,
+            end_x: 260.0,
+            end_z: 80.0,
+            path: Meander {
+                speed: 0.7,
+                wobble: 25.0,
+            },
+        },
+        GroupSpec {
+            guild: 3,
+            party: 4,
+            n_entities: 4,
+            start_x: 320.0,
+            start_z: 60.0,
+            end_x: 80.0,
+            end_z: 340.0,
+            path: Linear { speed: 1.0 },
+        },
+        GroupSpec {
+            guild: 1,
+            party: 5,
+            n_entities: 3,
+            start_x: 100.0,
+            start_z: 220.0,
+            end_x: 280.0,
+            end_z: 180.0,
+            path: Curve {
+                period_ticks: 400.0,
+            },
+        },
+        GroupSpec {
+            guild: 2,
+            party: 6,
+            n_entities: 4,
+            start_x: 40.0,
+            start_z: 200.0,
+            end_x: 360.0,
+            end_z: 200.0,
+            path: Linear { speed: 0.5 },
+        },
+        GroupSpec {
+            guild: 4,
+            party: 7,
+            n_entities: 3,
+            start_x: 350.0,
+            start_z: 200.0,
+            end_x: 50.0,
+            end_z: 200.0,
+            path: Meander {
+                speed: 0.4,
+                wobble: 40.0,
+            },
+        },
+        GroupSpec {
+            guild: 0,
+            party: 8,
+            n_entities: 3,
+            start_x: 150.0,
+            start_z: 150.0,
+            end_x: 250.0,
+            end_z: 250.0,
+            path: Wander { drift: 1.2 },
+        },
+        GroupSpec {
+            guild: 1,
+            party: 9,
+            n_entities: 3,
+            start_x: 250.0,
+            start_z: 250.0,
+            end_x: 150.0,
+            end_z: 150.0,
+            path: Wander { drift: 1.0 },
+        },
+        GroupSpec {
+            guild: 3,
+            party: 10,
+            n_entities: 4,
+            start_x: 50.0,
+            start_z: 300.0,
+            end_x: 350.0,
+            end_z: 100.0,
+            path: Linear { speed: 1.1 },
+        },
+        GroupSpec {
+            guild: 2,
+            party: 11,
+            n_entities: 3,
+            start_x: 300.0,
+            start_z: 50.0,
+            end_x: 100.0,
+            end_z: 350.0,
+            path: Curve {
+                period_ticks: 350.0,
+            },
+        },
+        GroupSpec {
+            guild: 4,
+            party: 12,
+            n_entities: 4,
+            start_x: 180.0,
+            start_z: 180.0,
+            end_x: 220.0,
+            end_z: 220.0,
+            path: Wander { drift: 0.8 },
+        },
+        GroupSpec {
+            guild: 0,
+            party: 13,
+            n_entities: 3,
+            start_x: 100.0,
+            start_z: 100.0,
+            end_x: 300.0,
+            end_z: 300.0,
+            path: Linear { speed: 0.3 },
+        },
+        GroupSpec {
+            guild: 5,
+            party: 14,
+            n_entities: 3,
+            start_x: 200.0,
+            start_z: 50.0,
+            end_x: 200.0,
+            end_z: 350.0,
+            path: Linear { speed: 0.8 },
+        },
+        GroupSpec {
+            guild: 5,
+            party: 15,
+            n_entities: 4,
+            start_x: 50.0,
+            start_z: 200.0,
+            end_x: 350.0,
+            end_z: 200.0,
+            path: Meander {
+                speed: 0.6,
+                wobble: 30.0,
+            },
+        },
     ];
-    let solos: Vec<SoloSpec> = (0..18).map(|_| SoloSpec {
-        guild: rng.gen_range(0..6u8),
-        party: rng.gen_range(16..24u8),
-        start_x: rng.gen_range(20.0..WORLD_W - 20.0),
-        start_z: rng.gen_range(20.0..WORLD_D - 20.0),
-    }).collect();
+    let solos: Vec<SoloSpec> = (0..18)
+        .map(|_| SoloSpec {
+            guild: rng.gen_range(0..6u8),
+            party: rng.gen_range(16..24u8),
+            start_x: rng.gen_range(20.0..WORLD_W - 20.0),
+            start_z: rng.gen_range(20.0..WORLD_D - 20.0),
+        })
+        .collect();
 
     let formation: Vec<(f64, f64)> = vec![
-        (0.0, 0.0), (-14.0, -6.0), (14.0, -6.0), (-14.0, 6.0), (14.0, 6.0),
-        (-8.0, -10.0), (8.0, -10.0), (-8.0, 10.0), (8.0, 10.0),
+        (0.0, 0.0),
+        (-14.0, -6.0),
+        (14.0, -6.0),
+        (-14.0, 6.0),
+        (14.0, 6.0),
+        (-8.0, -10.0),
+        (8.0, -10.0),
+        (-8.0, 10.0),
+        (8.0, 10.0),
     ];
     let n_groups = groups.len();
     let mut entities: Vec<Entity> = Vec::new();
@@ -126,7 +292,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         });
     }
 
-    let mut group_centers: Vec<(f64, f64)> = groups.iter().map(|g| (g.start_x, g.start_z)).collect();
+    let mut group_centers: Vec<(f64, f64)> =
+        groups.iter().map(|g| (g.start_x, g.start_z)).collect();
 
     let mut component_id_cache: HashMap<Vec<u128>, Uuid> = HashMap::new();
     let mut frames: Vec<serde_json::Value> = Vec::with_capacity(N_TICKS as usize);
@@ -156,7 +323,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 PathKind::Curve { period_ticks } => {
                     let mid_x = (g.start_x + g.end_x) * 0.5;
                     let mid_z = (g.start_z + g.end_z) * 0.5;
-                    let radius = ((g.end_x - g.start_x).powi(2) + (g.end_z - g.start_z).powi(2)).sqrt() * 0.5;
+                    let radius = ((g.end_x - g.start_x).powi(2) + (g.end_z - g.start_z).powi(2))
+                        .sqrt()
+                        * 0.5;
                     let angle = 2.0 * pi * t / period_ticks;
                     (mid_x + radius * angle.cos(), mid_z + radius * angle.sin())
                 }
@@ -208,18 +377,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let mut uf = UnionFind::new(n);
         for i in 0..n {
             for j in (i + 1)..n {
-                let dist_sq = (entities[i].x - entities[j].x).powi(2) + (entities[i].z - entities[j].z).powi(2);
+                let dist_sq = (entities[i].x - entities[j].x).powi(2)
+                    + (entities[i].z - entities[j].z).powi(2);
                 if dist_sq > R_INTERACT * R_INTERACT {
                     continue;
                 }
                 let interact = entities[i].guild == entities[j].guild
                     || entities[i].party == entities[j].party
-                    || enemies
-                        .iter()
-                        .any(|&(a, b)| {
-                            (entities[i].guild == a && entities[j].guild == b)
-                                || (entities[i].guild == b && entities[j].guild == a)
-                        });
+                    || enemies.iter().any(|&(a, b)| {
+                        (entities[i].guild == a && entities[j].guild == b)
+                            || (entities[i].guild == b && entities[j].guild == a)
+                    });
                 if interact {
                     uf.union(i, j);
                 }
@@ -234,21 +402,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             root_to_entities.entry(r).or_default().push(i);
         }
         let mut component_ids: Vec<Uuid> = vec![Uuid::nil(); n];
-        for (_, indices) in &root_to_entities {
+        for indices in root_to_entities.values() {
             if indices.len() <= MAX_LOAD {
-                let mut key: Vec<u128> = indices.iter().map(|&i| entity_bits(&entities[i].id)).collect();
+                let mut key: Vec<u128> = indices
+                    .iter()
+                    .map(|&i| entity_bits(&entities[i].id))
+                    .collect();
                 key.sort();
-                let cid = *component_id_cache
-                    .entry(key)
-                    .or_insert_with(Uuid::new_v4);
+                let cid = *component_id_cache.entry(key).or_insert_with(Uuid::new_v4);
                 for &i in indices {
                     component_ids[i] = cid;
                 }
             } else {
                 // Split by load: pack by party (keep same party together) into buckets of at most MAX_LOAD
-                let mut by_party: HashMap<u8, Vec<usize>> = indices
-                    .iter()
-                    .fold(HashMap::new(), |mut m, &i| {
+                let mut by_party: HashMap<u8, Vec<usize>> =
+                    indices.iter().fold(HashMap::new(), |mut m, &i| {
                         m.entry(entities[i].party).or_default().push(i);
                         m
                     });
@@ -269,11 +437,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     sub_clusters.push(current);
                 }
                 for sub in &sub_clusters {
-                    let mut key: Vec<u128> = sub.iter().map(|&i| entity_bits(&entities[i].id)).collect();
+                    let mut key: Vec<u128> =
+                        sub.iter().map(|&i| entity_bits(&entities[i].id)).collect();
                     key.sort();
-                    let cid = *component_id_cache
-                        .entry(key)
-                        .or_insert_with(Uuid::new_v4);
+                    let cid = *component_id_cache.entry(key).or_insert_with(Uuid::new_v4);
                     for &i in sub {
                         component_ids[i] = cid;
                     }
@@ -381,7 +548,9 @@ struct UnionFind {
 
 impl UnionFind {
     fn new(n: usize) -> Self {
-        Self { parent: (0..n).collect() }
+        Self {
+            parent: (0..n).collect(),
+        }
     }
     fn find(&mut self, i: usize) -> usize {
         if self.parent[i] != i {

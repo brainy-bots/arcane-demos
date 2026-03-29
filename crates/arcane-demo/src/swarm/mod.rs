@@ -82,14 +82,37 @@ pub fn parse_args() -> SwarmConfig {
     let mut i = 1;
     while i < args.len() {
         match args[i].as_str() {
-            "--players" | "-n" => { i += 1; cfg.players = args[i].parse().unwrap(); }
-            "--tick-rate"      => { i += 1; cfg.tick_rate = args[i].parse().unwrap(); }
-            "--duration" | "-d"=> { i += 1; cfg.duration_secs = args[i].parse().unwrap(); }
-            "--mode" | "-m"    => { i += 1; cfg.clustered = args[i] == "clustered"; }
-            "--aps"            => { i += 1; cfg.actions_per_sec = args[i].parse().unwrap(); }
-            "--host"           => { i += 1; cfg.host = args[i].clone(); }
-            "--db"             => { i += 1; cfg.db_name = args[i].clone(); }
-            "--server-physics" => { cfg.server_physics = true; }
+            "--players" | "-n" => {
+                i += 1;
+                cfg.players = args[i].parse().unwrap();
+            }
+            "--tick-rate" => {
+                i += 1;
+                cfg.tick_rate = args[i].parse().unwrap();
+            }
+            "--duration" | "-d" => {
+                i += 1;
+                cfg.duration_secs = args[i].parse().unwrap();
+            }
+            "--mode" | "-m" => {
+                i += 1;
+                cfg.clustered = args[i] == "clustered";
+            }
+            "--aps" => {
+                i += 1;
+                cfg.actions_per_sec = args[i].parse().unwrap();
+            }
+            "--host" => {
+                i += 1;
+                cfg.host = args[i].clone();
+            }
+            "--db" => {
+                i += 1;
+                cfg.db_name = args[i].clone();
+            }
+            "--server-physics" => {
+                cfg.server_physics = true;
+            }
             _ => {}
         }
         i += 1;
@@ -105,7 +128,12 @@ pub fn run() {
 
     eprintln!(
         "arcane-swarm-sdk: {} players, {} Hz, mode={}, aps={:.1}, duration={}s, server_physics={}",
-        cfg.players, cfg.tick_rate, mode_name, cfg.actions_per_sec, cfg.duration_secs, cfg.server_physics,
+        cfg.players,
+        cfg.tick_rate,
+        mode_name,
+        cfg.actions_per_sec,
+        cfg.duration_secs,
+        cfg.server_physics,
     );
     eprintln!("  SpacetimeDB: {}/database/{}", cfg.host, cfg.db_name);
     eprintln!("  Each player = 1 WebSocket + BSATN + subscription (identical to Unreal SDK)");
@@ -185,7 +213,9 @@ fn wait_all_connected(connected: &Arc<AtomicU64>, total: u32) {
         if start.elapsed() > timeout {
             eprintln!(
                 "  WARNING: Only {}/{} connected after {}s, continuing...",
-                c, total, timeout.as_secs()
+                c,
+                total,
+                timeout.as_secs()
             );
             break;
         }
@@ -196,8 +226,14 @@ fn wait_all_connected(connected: &Arc<AtomicU64>, total: u32) {
 /// Heuristic: which component is likely failing (for visibility when debugging ceiling).
 fn bottleneck_hint(players: u32, snap: &metrics::Snapshot) -> &'static str {
     let total = snap.calls + snap.errs;
-    let err_rate = if total > 0 { snap.errs as f64 / total as f64 } else { 0.0 };
-    let expected_sub_per_sec = (players as u64).saturating_mul(players as u64).saturating_mul(10);
+    let err_rate = if total > 0 {
+        snap.errs as f64 / total as f64
+    } else {
+        0.0
+    };
+    let expected_sub_per_sec = (players as u64)
+        .saturating_mul(players as u64)
+        .saturating_mul(10);
     let sub_ok = expected_sub_per_sec == 0 || snap.sub_total() >= expected_sub_per_sec / 4;
     if err_rate >= 0.01 {
         "hint: REDUCER_STRESS (high err)"
@@ -234,7 +270,11 @@ fn spawn_reporter(
             total_errs += snap.errs;
             total_latency_sum_us += snap.avg_latency_us * snap.oks; // approx sum for this second
             total_latency_samples += snap.oks;
-            let warmup_tag = if elapsed <= WARMUP_SECS { " (warmup)" } else { "" };
+            let warmup_tag = if elapsed <= WARMUP_SECS {
+                " (warmup)"
+            } else {
+                ""
+            };
             let hint = bottleneck_hint(players, &snap);
             eprintln!(
                 "[{:4}s]{} players={} calls={} ok={} err={} lat avg={:.1}ms p50={:.1}ms p95={:.1}ms p99={:.1}ms max={:.1}ms | sub_rx={} (upd={} ins={} del={}) | {}",

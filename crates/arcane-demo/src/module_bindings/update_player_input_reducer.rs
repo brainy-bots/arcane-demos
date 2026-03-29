@@ -31,7 +31,12 @@ impl __sdk::InModule for UpdatePlayerInputArgs {
 ///
 /// Implemented for [`super::RemoteReducers`].
 pub trait update_player_input {
-    fn update_player_input(&self, entity_id: __sdk::Uuid, dir_x: f64, dir_z: f64) -> __sdk::Result<()> {
+    fn update_player_input(
+        &self,
+        entity_id: __sdk::Uuid,
+        dir_x: f64,
+        dir_z: f64,
+    ) -> __sdk::Result<()> {
         self.update_player_input_then(entity_id, dir_x, dir_z, |_, _| {})
     }
 

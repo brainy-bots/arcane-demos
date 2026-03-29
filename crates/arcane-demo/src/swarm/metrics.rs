@@ -32,7 +32,10 @@ const BUCKET_BOUNDS_US: [u64; 16] = [
 const NUM_BUCKETS: usize = BUCKET_BOUNDS_US.len() + 1; // last bucket = overflow
 
 fn bucket_for(us: u64) -> usize {
-    BUCKET_BOUNDS_US.iter().position(|&b| us < b).unwrap_or(BUCKET_BOUNDS_US.len())
+    BUCKET_BOUNDS_US
+        .iter()
+        .position(|&b| us < b)
+        .unwrap_or(BUCKET_BOUNDS_US.len())
 }
 
 /// Shared counters written by every player thread, read by the reporter.
@@ -66,7 +69,6 @@ pub struct Snapshot {
 
 impl Metrics {
     pub fn new() -> Self {
-        const ZERO: AtomicU64 = AtomicU64::new(0);
         Self {
             reducer_calls: AtomicU64::new(0),
             reducer_oks: AtomicU64::new(0),
@@ -77,7 +79,7 @@ impl Metrics {
             latency_sum_us: AtomicU64::new(0),
             latency_samples: AtomicU64::new(0),
             latency_max_us: AtomicU64::new(0),
-            latency_buckets: [ZERO; NUM_BUCKETS],
+            latency_buckets: std::array::from_fn(|_| AtomicU64::new(0)),
         }
     }
 
@@ -122,6 +124,12 @@ impl Metrics {
             p95_latency_us: percentile_from_buckets(&buckets, n, 0.95),
             p99_latency_us: percentile_from_buckets(&buckets, n, 0.99),
         }
+    }
+}
+
+impl Default for Metrics {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

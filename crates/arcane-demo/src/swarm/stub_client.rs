@@ -206,12 +206,12 @@ fn send_position(
     let m_ok = metrics.clone();
     let m_err = metrics.clone();
 
-    match conn.reducers.update_player_then(entity, move |_ctx, result| {
-        match result {
+    match conn
+        .reducers
+        .update_player_then(entity, move |_ctx, result| match result {
             Ok(Ok(())) => m_ok.record_reducer_ok(t0.elapsed()),
             _ => m_err.record_reducer_err(),
-        }
-    }) {
+        }) {
         Ok(()) => {}
         Err(_) => metrics.record_reducer_err(),
     }
@@ -228,12 +228,17 @@ fn send_input(
     let t0 = Instant::now();
     let m_ok = metrics.clone();
     let m_err = metrics.clone();
-    match conn.reducers.update_player_input_then(player_uuid, dir_x, dir_z, move |_ctx, result| {
-        match result {
-            Ok(Ok(())) => m_ok.record_reducer_ok(t0.elapsed()),
-            _ => m_err.record_reducer_err(),
-        }
-    }) {
+    match conn
+        .reducers
+        .update_player_input_then(
+            player_uuid,
+            dir_x,
+            dir_z,
+            move |_ctx, result| match result {
+                Ok(Ok(())) => m_ok.record_reducer_ok(t0.elapsed()),
+                _ => m_err.record_reducer_err(),
+            },
+        ) {
         Ok(()) => {}
         Err(_) => metrics.record_reducer_err(),
     }
@@ -251,18 +256,18 @@ fn send_game_action(
 
     match seed % 3 {
         0 => {
-            let _ = conn.reducers.pickup_item(
-                player_uuid,
-                (seed % 10) as u32,
-                1 + (seed % 5) as u32,
-            );
+            let _ =
+                conn.reducers
+                    .pickup_item(player_uuid, (seed % 10) as u32, 1 + (seed % 5) as u32);
         }
         1 => {
             let _ = conn.reducers.use_item(player_uuid, (seed % 10) as u32);
         }
         _ => {
             let target = spacetimedb_sdk::Uuid::from_u128(uuid::Uuid::new_v4().as_u128());
-            let _ = conn.reducers.player_interact(player_uuid, target, (seed % 4) as u32);
+            let _ = conn
+                .reducers
+                .player_interact(player_uuid, target, (seed % 4) as u32);
         }
     }
 }

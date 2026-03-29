@@ -13,7 +13,8 @@ use uuid::Uuid;
 const TICK_INTERVAL: Duration = Duration::from_millis(50); // 20 Hz
 
 fn main() -> Result<(), String> {
-    let uri = std::env::var("SPACETIMEDB_URI").unwrap_or_else(|_| "http://localhost:3000".to_string());
+    let uri =
+        std::env::var("SPACETIMEDB_URI").unwrap_or_else(|_| "http://localhost:3000".to_string());
     // Must match the database name we published locally via `spacetime publish arcane --yes`
     let database = std::env::var("DATABASE_NAME").unwrap_or_else(|_| "arcane".to_string());
     let n_entities: u32 = std::env::var("DEMO_ENTITIES")

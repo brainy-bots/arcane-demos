@@ -29,7 +29,11 @@ impl PlayerMovement {
     /// `clustered` packs all players into a small area (town square scenario).
     pub fn new(idx: u32, total: u32, clustered: bool) -> Self {
         let angle = (idx as f64 / total.max(1) as f64) * TAU;
-        let radius = if clustered { CLUSTER_RADIUS } else { WORLD_SIZE * 0.35 };
+        let radius = if clustered {
+            CLUSTER_RADIUS
+        } else {
+            WORLD_SIZE * 0.35
+        };
         Self {
             x: WORLD_CENTER + radius * angle.cos(),
             y: 0.0,
@@ -66,7 +70,10 @@ impl PlayerMovement {
         self.z += self.vz;
 
         let (lo, hi) = if clustered {
-            (WORLD_CENTER - CLUSTER_RADIUS * 2.0, WORLD_CENTER + CLUSTER_RADIUS * 2.0)
+            (
+                WORLD_CENTER - CLUSTER_RADIUS * 2.0,
+                WORLD_CENTER + CLUSTER_RADIUS * 2.0,
+            )
         } else {
             (200.0, WORLD_SIZE - 200.0)
         };
