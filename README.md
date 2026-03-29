@@ -49,7 +49,7 @@ Runs both Arcane and default Unreal networking at several entity counts, parses 
 
 ## Backend demo (Rust)
 
-- **Crate:** `crates/arcane-demo` — depends on the **arcane** repo (path `../../../arcane/crates/arcane-infra`). Must have arcane cloned next to arcane-demos.
+- **Crate:** `crates/arcane-demo` — depends on **arcane** via git submodule at `./arcane` (path `../../arcane/crates/arcane-infra` from the crate). Clone with `git clone --recurse-submodules` or run `git submodule update --init --recursive` after clone.
 - **Binary:** `arcane-cluster-demo` — cluster server with demo agents (gravity, jump, wander). Used by `run_demo.ps1` and `run_demo_multi.ps1`.
 
 ## Versioning

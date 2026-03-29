@@ -1,0 +1,3 @@
+[submodule "arcane"]
+	path = arcane
+	url = https://github.com/brainy-bots/arcane.git

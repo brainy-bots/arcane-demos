@@ -29,9 +29,9 @@ name = "arcane-swarm-sdk"
 path = "src/bin/arcane_swarm_sdk.rs"
 
 [dependencies]
-# Path to sibling arcane repo (clone arcane next to arcane-demos, e.g. E:\code\arcane and E:\code\arcane-demos)
-arcane-infra = { path = "../../../arcane/crates/arcane-infra", features = ["cluster-ws", "spacetimedb-persist"] }
-arcane-core = { path = "../../../arcane/crates/arcane-core" }
+# Git submodule at repo root: `arcane/` (see .gitmodules). Init: `git submodule update --init --recursive`.
+arcane-infra = { path = "../../arcane/crates/arcane-infra", features = ["cluster-ws", "spacetimedb-persist"] }
+arcane-core = { path = "../../arcane/crates/arcane-core" }
 rand = "0.8"
 serde_json = "1.0"
 uuid = { version = "1.0", features = ["v4"] }
