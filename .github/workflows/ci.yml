@@ -9,8 +9,15 @@ jobs:
   rust-checks:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout arcane-demos
         uses: actions/checkout@v4
+
+      # arcane-demo depends on ../../../arcane (sibling of this repo root on disk).
+      - name: Checkout arcane (path dependency)
+        uses: actions/checkout@v4
+        with:
+          repository: brainy-bots/arcane
+          path: ../arcane
 
       - name: Install toolchain
         uses: dtolnay/rust-toolchain@stable
