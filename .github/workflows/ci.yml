@@ -11,8 +11,20 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          submodules: recursive
+
+      # `arcane` is a private submodule; GITHUB_TOKEN cannot fetch it unless the org allows
+      # cross-repo access. Use a PAT with read access to brainy-bots/arcane (repo secret).
+      - name: Init submodule arcane
+        env:
+          PAT: ${{ secrets.ARCANE_SUBMODULE_PAT }}
+        run: |
+          if [ -z "$PAT" ]; then
+            echo "Missing repository secret ARCANE_SUBMODULE_PAT (classic PAT with repo scope, or fine-grained read on brainy-bots/arcane)."
+            exit 1
+          fi
+          git config -f .gitmodules submodule.arcane.url "https://x-access-token:${PAT}@github.com/brainy-bots/arcane.git"
+          git submodule sync --recursive
+          git submodule update --init --depth 1 --recursive
 
       - name: Install toolchain
         uses: dtolnay/rust-toolchain@stable

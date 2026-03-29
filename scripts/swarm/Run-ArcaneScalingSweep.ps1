@@ -57,7 +57,7 @@ param(
 $ErrorActionPreference = "Stop"
 $ScriptDir = $PSScriptRoot
 $RepoRoot = Resolve-Path (Join-Path $ScriptDir "..\..")
-$ArcaneRepo = Join-Path (Split-Path $RepoRoot -Parent) "arcane"
+$ArcaneRepo = Join-Path $RepoRoot "arcane"
 if ($OutCsv -eq "") { $OutCsv = Join-Path $ScriptDir "arcane_scaling_sweep.csv" }
 if ($LogDir -eq "") { $LogDir = Join-Path $ScriptDir "arcane_scaling_logs" }
 $null = New-Item -ItemType Directory -Path $LogDir -Force

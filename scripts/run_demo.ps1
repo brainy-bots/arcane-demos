@@ -13,7 +13,7 @@ param([int] $EntityCount = 200, [string] $ClusterLogPath = "", [double] $StressR
 
 $ErrorActionPreference = "Stop"
 $RepoRoot = Resolve-Path "$PSScriptRoot\.."
-$ArcaneRepo = Resolve-Path (Join-Path $RepoRoot "..\arcane")
+$ArcaneRepo = Resolve-Path (Join-Path $RepoRoot "arcane")
 $DemoClusterId = "550e8400-e29b-41d4-a716-446655440000"
 
 Write-Host "Building manager (arcane repo) and cluster-demo (this repo)..."

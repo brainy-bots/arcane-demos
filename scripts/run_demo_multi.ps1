@@ -10,7 +10,7 @@ param([switch] $SkipRedisCheck)
 
 $ErrorActionPreference = "Stop"
 $RepoRoot = (Resolve-Path "$PSScriptRoot\..").Path
-$ArcaneRepo = (Resolve-Path (Join-Path $RepoRoot "..\arcane")).Path
+$ArcaneRepo = (Resolve-Path (Join-Path $RepoRoot "arcane")).Path
 
 $ClusterA = "550e8400-e29b-41d4-a716-446655440001"
 $ClusterB = "550e8400-e29b-41d4-a716-446655440002"

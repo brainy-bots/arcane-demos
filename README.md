@@ -4,7 +4,7 @@ Minimal examples that show how to use the Arcane library and Unreal client plugi
 
 ## Three-repo layout
 
-- **arcane** — Rust library (core, spatial, rules, pool, infra + reference server). Clone next to this repo: `E:\code\arcane` and `E:\code\arcane-demos`.
+- **arcane** — Rust library (core, spatial, rules, pool, infra + reference server). This repo includes it as a **git submodule** at `./arcane`. After clone run `git submodule update --init --recursive`, or clone with `git clone --recurse-submodules <url>`.
 - **arcane-client-unreal** — Unreal Engine plugin. This demo project includes a **copy** of the plugin under `Unreal/ArcaneDemo/Plugins/ArcaneClient`. To update the plugin, replace that folder from a fresh clone of arcane-client-unreal.
 - **arcane-demos** (this repo) — Unreal demo game + backend demo crate + scripts.
 
@@ -12,7 +12,11 @@ Minimal examples that show how to use the Arcane library and Unreal client plugi
 
 - **Rust** — to build the backend demo and the arcane library.
 - **Unreal Engine 5.x** — to open and run the Unreal demo.
-- **arcane** repo — clone so it sits **next to** arcane-demos (e.g. `E:\code\arcane`, `E:\code\arcane-demos`).
+- **arcane** — provided by the submodule under `arcane/` (see above).
+
+## GitHub Actions (CI)
+
+The workflow needs a repository secret **`ARCANE_SUBMODULE_PAT`**: a classic personal access token with `repo` scope (or a fine-grained token with read access to **brainy-bots/arcane**), so the runner can clone the private `arcane` submodule. Without it, the **Init submodule arcane** step fails.
 
 ## Run the demo (single cluster, 200 entities)
 
