@@ -64,3 +64,11 @@ See `docs/COMPATIBILITY_MATRIX.md` for tested repo/version combinations and expe
 See `docs/ARCHITECTURE_INDEX.md` for architecture navigation and ownership boundaries.
 See `docs/MODULE_INTERACTIONS.md` for repository module responsibilities and integration boundaries.
 See `docs/ARTIFACT_BOUNDARY_POLICY.md` for source vs generated-output rules.
+
+## License
+
+arcane-demos is licensed under the **GNU Affero General Public License v3.0** (AGPL-3.0). See [LICENSE](LICENSE) for the full text.
+
+If you want to ship proprietary/closed-source software based on these demos, contact the copyright holder for a commercial license.
+
+For licensing inquiries: martin.mba@gmail.com

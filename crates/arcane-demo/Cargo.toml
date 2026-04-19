@@ -3,6 +3,7 @@ name = "arcane-demo"
 version = "0.1.0"
 edition = "2021"
 description = "Arcane Engine — demo runner and clustering visualization (no Unreal). Demo-only logic lives here; library is arcane-infra/arcane-core."
+license = "AGPL-3.0-only"
 
 [lib]
 name = "arcane_demo"
