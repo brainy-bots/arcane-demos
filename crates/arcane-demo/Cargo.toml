@@ -20,18 +20,21 @@ path = "src/bin/arcane_cluster_demo.rs"
 [[bin]]
 name = "arcane-spacetime-sim"
 path = "src/bin/arcane_spacetime_sim.rs"
+required-features = ["spacetime-sim"]
 
 [[bin]]
 name = "arcane-swarm"
 path = "src/bin/arcane_swarm.rs"
+required-features = ["swarm"]
 
 [[bin]]
 name = "arcane-swarm-sdk"
 path = "src/bin/arcane_swarm_sdk.rs"
+required-features = ["swarm-sdk"]
 
 [dependencies]
 # Git submodule at repo root: `arcane/` (see .gitmodules). Init: `git submodule update --init --recursive`.
-arcane-infra = { path = "../../arcane/crates/arcane-infra", features = ["cluster-ws", "spacetimedb-persist"] }
+arcane-infra = { path = "../../arcane/crates/arcane-infra", features = ["cluster-ws"] }
 arcane-core = { path = "../../arcane/crates/arcane-core" }
 rand = "0.8"
 serde_json = "1.0"
@@ -46,6 +49,6 @@ log = { version = "0.4", optional = true }
 
 [features]
 default = []
-spacetime-sim = ["dep:reqwest", "dep:serde"]
+spacetime-sim = ["dep:reqwest", "dep:serde", "arcane-infra/spacetimedb-persist"]
 swarm = ["dep:reqwest", "dep:serde", "dep:tokio", "dep:tokio-tungstenite", "dep:futures-util"]
 swarm-sdk = ["dep:spacetimedb-sdk", "dep:tokio", "dep:log"]
