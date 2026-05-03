@@ -32,10 +32,19 @@ name = "arcane-swarm-sdk"
 path = "src/bin/arcane_swarm_sdk.rs"
 required-features = ["swarm-sdk"]
 
+[[bin]]
+name = "arcane-clustering-sim"
+path = "src/bin/arcane_clustering_sim.rs"
+required-features = ["clustering-sim"]
+
 [dependencies]
 # Git submodule at repo root: `arcane/` (see .gitmodules). Init: `git submodule update --init --recursive`.
 arcane-infra = { path = "../../arcane/crates/arcane-infra", features = ["cluster-ws"] }
 arcane-core = { path = "../../arcane/crates/arcane-core" }
+arcane-pool = { path = "../../arcane/crates/arcane-pool" }
+arcane-rules = { path = "../../arcane/crates/arcane-rules" }
+arcane-spatial = { path = "../../arcane/crates/arcane-spatial" }
+arcane-affinity = { path = "../../arcane/crates/arcane-affinity", optional = true }
 rand = "0.8"
 serde_json = "1.0"
 uuid = { version = "1.0", features = ["v4"] }
@@ -52,3 +61,4 @@ default = []
 spacetime-sim = ["dep:reqwest", "dep:serde", "arcane-infra/spacetimedb-persist"]
 swarm = ["dep:reqwest", "dep:serde", "dep:tokio", "dep:tokio-tungstenite", "dep:futures-util"]
 swarm-sdk = ["dep:spacetimedb-sdk", "dep:tokio", "dep:log"]
+clustering-sim = ["arcane-infra/affinity-clustering", "dep:arcane-affinity"]

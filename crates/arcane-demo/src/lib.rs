@@ -2,11 +2,13 @@
 //! Keeps game/demo logic (e.g. cluster demo agents with gravity, jump) separate from the library (arcane-infra, arcane-core).
 
 pub mod cluster_demo;
+pub mod clustering_sim;
 
 pub use cluster_demo::{
     agents_to_entries, compute_group_states, create_demo_agents, create_grouped_agents,
     tick_demo_agents, tick_grouped_agents, DemoAgent, EncounterTracker, GroupState,
 };
+pub use clustering_sim::{run_sim, EvalSnapshot, Model, SimConfig, SimResult};
 
 #[cfg(feature = "swarm-sdk")]
 #[path = "module_bindings/mod.rs"]

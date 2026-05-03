@@ -68,5 +68,6 @@ fn main() -> Result<(), String> {
             tick_demo_agents(&mut demo_agents, tick_count, stress_radius);
             agents_to_entries(&demo_agents, cluster_id)
         },
+        None, // no ClusterSimulation
     )
 }

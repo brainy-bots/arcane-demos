@@ -514,11 +514,13 @@ pub fn tick_demo_agents(agents: &mut [DemoAgent], tick: u64, stress_radius: Opti
 pub fn agents_to_entries(agents: &[DemoAgent], cluster_id: Uuid) -> Vec<EntityStateEntry> {
     agents
         .iter()
-        .map(|a| EntityStateEntry {
-            entity_id: a.entity_id,
-            cluster_id,
-            position: Vec3::new(a.x, a.z, a.y),
-            velocity: Vec3::new(a.vx, a.vz, a.vy),
+        .map(|a| {
+            EntityStateEntry::new(
+                a.entity_id,
+                cluster_id,
+                Vec3::new(a.x, a.z, a.y),
+                Vec3::new(a.vx, a.vz, a.vy),
+            )
         })
         .collect()
 }
