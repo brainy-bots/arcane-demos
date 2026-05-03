@@ -28,7 +28,7 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 #[cfg(feature = "clustering-sim")]
-use arcane_affinity::AffinityEngine;
+use arcane_affinity::{config::AffinityConfig, AffinityEngine};
 
 /// Which clustering model to evaluate.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -94,7 +94,14 @@ pub fn run_sim(cfg: &SimConfig) -> SimResult {
     let model: Arc<dyn IClusteringModel> = match cfg.model {
         Model::Rules => Arc::new(arcane_rules::RulesEngine::new()),
         #[cfg(feature = "clustering-sim")]
-        Model::Affinity => Arc::new(AffinityEngine::default()),
+        // cooldown_ticks is measured in evaluation cycles (one per eval_interval ticks).
+        // Default of 50 cycles × 10 ticks/cycle = 500 sim ticks — longer than the default
+        // 300-tick run, preventing the second convergence pass. Use 5 cycles (50 ticks) so
+        // re-migration can happen by tick ~60 for groups with an initial symmetric split.
+        Model::Affinity => Arc::new(AffinityEngine::new(AffinityConfig {
+            cooldown_ticks: 5,
+            ..AffinityConfig::default()
+        })),
     };
 
     let mut agents = create_grouped_agents(cfg.total_agents, cfg.group_size, None);
