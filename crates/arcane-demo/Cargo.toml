@@ -14,8 +14,8 @@ name = "arcane-viz"
 path = "src/main.rs"
 
 [[bin]]
-name = "arcane-cluster-demo"
-path = "src/bin/arcane_cluster_demo.rs"
+name = "arcane-node-demo"
+path = "src/bin/arcane_node_demo.rs"
 
 [[bin]]
 name = "arcane-spacetime-sim"

@@ -1,3 +1,6 @@
 [workspace]
 resolver = "2"
 members = ["crates/arcane-demo"]
+
+[workspace.package]
+license = "AGPL-3.0-only"

@@ -220,6 +220,8 @@ pub fn agents_to_entries(agents: &[DemoAgent], cluster_id: Uuid) -> Vec<EntitySt
             cluster_id,
             position: Vec3::new(a.x, a.z, a.y),
             velocity: Vec3::new(a.vx, a.vz, a.vy),
+            user_data: serde_json::Value::Null,
+            local_data: serde_json::Value::Null,
         })
         .collect()
 }
