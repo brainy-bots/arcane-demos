@@ -1,6 +1,9 @@
 //! Demo-only: automated agents that match Unreal player movement (speed, gravity, jump).
 //! Same scale as the playable character: walk in a sustained direction for several seconds, then pick a new direction.
 //! Movement params match ArcaneDemoCharacter: MaxWalkSpeed 600 UU/s, JumpZVelocity 400, gravity 980.
+//!
+//! Projectile support: spawned via GameAction("fire"), despawn after lifetime or on collision.
+//! Explosion: on contact, radius query + impulse to all hits. Cross-cluster: impulses route via physics proxies.
 
 use arcane_core::replication_channel::EntityStateEntry;
 use arcane_core::Vec3;
@@ -18,6 +21,13 @@ const JUMP_VELOCITY: f64 = 400.0;
 const GROUND_Y: f64 = 0.0;
 const JUMP_CHANCE_DENOM: u64 = 900;
 
+/// Projectile spawning and explosion configuration.
+const PROJECTILE_LIFETIME_TICKS: u64 = 200; // ~10s at 20Hz
+const PROJECTILE_RADIUS: f64 = 10.0; // collision detection and visual size
+const PROJECTILE_INITIAL_SPEED: f64 = 300.0; // UU/s
+const EXPLOSION_RADIUS: f64 = 150.0; // sphere query radius for affected entities
+const EXPLOSION_IMPULSE_MAGNITUDE: f64 = 500.0; // force applied per entity hit
+
 /// Run speed: match player 600 UU/s. Walk: ~200 UU/s so animations show walk.
 const RUN_SPEED_PER_TICK: f64 = 600.0 * TICK_DT;
 const WALK_SPEED_PER_TICK: f64 = 200.0 * TICK_DT;
@@ -30,6 +40,26 @@ enum MoveState {
     Stand,
     Walk,
     Run,
+}
+
+/// Client action: movement, fire, interact.
+#[derive(Clone, Copy, Debug)]
+pub enum GameAction {
+    Fire { forward_dir: (f64, f64, f64) },
+}
+
+/// Projectile entity: spawned by "fire" GameAction, despawns on lifetime or collision.
+#[derive(Clone)]
+pub struct Projectile {
+    pub entity_id: Uuid,
+    pub x: f64,
+    pub y: f64,
+    pub z: f64,
+    pub vx: f64,
+    pub vy: f64,
+    pub vz: f64,
+    pub lifetime_ticks: u64,
+    pub owner_id: Uuid, // don't collide with firing player initially
 }
 
 /// Demo agent: position, velocity. Randomly switches between stand / walk / run; walk in one direction per state.
@@ -210,6 +240,140 @@ pub fn tick_demo_agents(agents: &mut [DemoAgent], tick: u64, stress_radius: Opti
     }
 }
 
+/// Spawn projectile from player position with forward velocity.
+pub fn spawn_projectile(
+    player_pos: (f64, f64, f64),
+    owner_id: Uuid,
+    forward: (f64, f64, f64),
+) -> Projectile {
+    let (px, py, pz) = player_pos;
+    let (fx, fy, fz) = forward;
+    let len = (fx * fx + fy * fy + fz * fz).sqrt();
+    let (fx, fy, fz) = if len > 0.0001 {
+        (fx / len, fy / len, fz / len)
+    } else {
+        (1.0, 0.0, 0.0)
+    };
+
+    Projectile {
+        entity_id: Uuid::new_v4(),
+        x: px,
+        y: py,
+        z: pz,
+        vx: fx * PROJECTILE_INITIAL_SPEED,
+        vy: fy * PROJECTILE_INITIAL_SPEED,
+        vz: fz * PROJECTILE_INITIAL_SPEED,
+        lifetime_ticks: PROJECTILE_LIFETIME_TICKS,
+        owner_id,
+    }
+}
+
+/// Tick projectiles: update position, apply gravity, decrement lifetime.
+pub fn tick_projectiles(projectiles: &mut Vec<Projectile>, tick: u64, stress_radius: Option<f64>) {
+    let (min_x, max_x, min_z, max_z) = match stress_radius {
+        Some(r) => (
+            WORLD_CENTER_X - r,
+            WORLD_CENTER_X + r,
+            WORLD_CENTER_Z - r,
+            WORLD_CENTER_Z + r,
+        ),
+        None => (
+            WORLD_MARGIN,
+            WORLD_SIZE - WORLD_MARGIN,
+            WORLD_MARGIN,
+            WORLD_SIZE - WORLD_MARGIN,
+        ),
+    };
+
+    let mut to_remove = Vec::new();
+    for (idx, p) in projectiles.iter_mut().enumerate() {
+        p.vy -= GRAVITY * TICK_DT;
+        p.y += p.vy * TICK_DT;
+        p.x += p.vx * TICK_DT;
+        p.z += p.vz * TICK_DT;
+
+        p.lifetime_ticks = p.lifetime_ticks.saturating_sub(1);
+
+        // Out of bounds or expired: mark for removal
+        if p.lifetime_ticks == 0
+            || p.x < min_x
+            || p.x > max_x
+            || p.z < min_z
+            || p.z > max_z
+            || p.y < -100.0
+        {
+            to_remove.push(idx);
+        }
+    }
+
+    for idx in to_remove.iter().rev() {
+        projectiles.remove(*idx);
+    }
+}
+
+/// Check collision between projectile and agent (simple sphere overlap).
+fn projectile_hits_agent(proj: &Projectile, agent: &DemoAgent) -> bool {
+    let dx = proj.x - agent.x;
+    let dy = proj.y - agent.y;
+    let dz = proj.z - agent.z;
+    let dist_sq = dx * dx + dy * dy + dz * dz;
+    let collision_dist = PROJECTILE_RADIUS + 30.0; // agent radius ~30
+    dist_sq < collision_dist * collision_dist
+}
+
+/// Find agents hit by projectiles; remove hit projectiles and return (projectile_pos, hit_count) for explosions.
+fn detect_collisions(
+    projectiles: &mut Vec<Projectile>,
+    agents: &[DemoAgent],
+) -> Vec<(Projectile, Vec<Uuid>)> {
+    let mut explosions = Vec::new();
+    let mut hit_indices = Vec::new();
+
+    for (p_idx, proj) in projectiles.iter().enumerate() {
+        let mut hit_agents = Vec::new();
+        for agent in agents.iter() {
+            if agent.entity_id != proj.owner_id && projectile_hits_agent(proj, agent) {
+                hit_agents.push(agent.entity_id);
+            }
+        }
+        if !hit_agents.is_empty() {
+            explosions.push((proj.clone(), hit_agents));
+            hit_indices.push(p_idx);
+        }
+    }
+
+    // Remove hit projectiles (in reverse to preserve indices)
+    for idx in hit_indices.iter().rev() {
+        projectiles.remove(*idx);
+    }
+
+    explosions
+}
+
+/// Apply explosion impulses to agents within radius. Simple single-cluster version (no cross-cluster yet).
+/// Returns (agent_id, impulse_direction) for agents affected.
+fn apply_explosions(agents: &mut [DemoAgent], explosions: Vec<(Projectile, Vec<Uuid>)>) {
+    for (proj, _hit_agents) in explosions {
+        for agent in agents.iter_mut() {
+            let dx = agent.x - proj.x;
+            let dz = agent.z - proj.z;
+            let dist_sq = dx * dx + dz * dz;
+
+            if dist_sq < EXPLOSION_RADIUS * EXPLOSION_RADIUS && dist_sq > 0.0001 {
+                let dist = dist_sq.sqrt();
+                let nx = dx / dist;
+                let nz = dz / dist;
+
+                // Apply radial impulse: magnitude decreases with distance
+                let falloff = 1.0 - (dist / EXPLOSION_RADIUS).min(1.0);
+                let impulse = EXPLOSION_IMPULSE_MAGNITUDE * falloff;
+                agent.vx += nx * impulse * TICK_DT;
+                agent.vz += nz * impulse * TICK_DT;
+            }
+        }
+    }
+}
+
 /// Converts demo agents to entity entries (cluster_id set by runner). Demo-only.
 /// Position/velocity sent as (horizontal1, horizontal2, vertical) so JSON "z" = height; Unreal uses Z for up.
 pub fn agents_to_entries(agents: &[DemoAgent], cluster_id: Uuid) -> Vec<EntityStateEntry> {
@@ -220,6 +384,24 @@ pub fn agents_to_entries(agents: &[DemoAgent], cluster_id: Uuid) -> Vec<EntitySt
             cluster_id,
             position: Vec3::new(a.x, a.z, a.y),
             velocity: Vec3::new(a.vx, a.vz, a.vy),
+            user_data: serde_json::Value::Null,
+            local_data: serde_json::Value::Null,
+        })
+        .collect()
+}
+
+/// Converts projectiles to entity entries.
+pub fn projectiles_to_entries(
+    projectiles: &[Projectile],
+    cluster_id: Uuid,
+) -> Vec<EntityStateEntry> {
+    projectiles
+        .iter()
+        .map(|p| EntityStateEntry {
+            entity_id: p.entity_id,
+            cluster_id,
+            position: Vec3::new(p.x, p.z, p.y),
+            velocity: Vec3::new(p.vx, p.vz, p.vy),
             user_data: serde_json::Value::Null,
             local_data: serde_json::Value::Null,
         })
