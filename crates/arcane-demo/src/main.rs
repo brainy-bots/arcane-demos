@@ -3,7 +3,7 @@
 //! When many entities interact in one place we SPLIT into more servers (load cap), not merge into one.
 
 use arcane_core::Vec3;
-use arcane_infra::ClusterManager;
+use arcane_infra::ArcaneManager;
 use rand::Rng;
 use std::collections::HashMap;
 use std::env;
@@ -54,7 +54,7 @@ struct SoloSpec {
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let out_dir = env::args().nth(1).unwrap_or_else(|| ".".to_string());
     let out_path = Path::new(&out_dir);
-    let mut manager = ClusterManager::with_defaults();
+    let mut manager = ArcaneManager::with_defaults();
     let mut rng = rand::thread_rng();
 
     let enemies: Vec<(u8, u8)> = vec![(0, 1), (1, 2)];

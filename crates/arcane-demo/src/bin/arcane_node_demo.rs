@@ -1,16 +1,16 @@
-//! Cluster server binary with demo agents (gravity, jump, wander).
-//! Demo-only: use this for Unreal/replication demos. For infrastructure-only cluster, use arcane-infra's arcane-cluster.
+//! Node server binary with demo agents (gravity, jump, wander).
+//! Demo-only: use this for Unreal/replication demos. For infrastructure-only node, use arcane-infra's arcane-node.
 //!
-//! Env: same as arcane-cluster, plus:
+//! Env: same as arcane-node, plus:
 //!   DEMO_ENTITIES   — number of demo entities (e.g. 25).
 //!
 //! Example:
-//!   CLUSTER_ID=... DEMO_ENTITIES=25 cargo run -p arcane-demo --bin arcane-cluster-demo
+//!   NODE_ID=... DEMO_ENTITIES=25 cargo run -p arcane-demo --bin arcane-node-demo
 
 use std::env;
 
 use arcane_demo::{agents_to_entries, create_demo_agents, tick_demo_agents};
-use arcane_infra::cluster_runner;
+use arcane_infra::node_runner;
 use uuid::Uuid;
 
 fn parse_uuids(s: &str) -> Vec<Uuid> {
@@ -23,16 +23,15 @@ fn parse_uuids(s: &str) -> Vec<Uuid> {
 
 fn main() -> Result<(), String> {
     let cluster_id =
-        env::var("CLUSTER_ID").map_err(|_| "CLUSTER_ID env var required (UUID)".to_string())?;
-    let cluster_id =
-        Uuid::parse_str(&cluster_id).map_err(|e| format!("invalid CLUSTER_ID: {}", e))?;
+        env::var("NODE_ID").map_err(|_| "NODE_ID env var required (UUID)".to_string())?;
+    let cluster_id = Uuid::parse_str(&cluster_id).map_err(|e| format!("invalid NODE_ID: {}", e))?;
 
     let redis_url = env::var("REDIS_URL").unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string());
     let neighbor_ids = env::var("NEIGHBOR_IDS")
         .map(|s| parse_uuids(&s))
         .unwrap_or_default();
 
-    let ws_port: u16 = env::var("CLUSTER_WS_PORT")
+    let ws_port: u16 = env::var("NODE_WS_PORT")
         .ok()
         .and_then(|s| s.parse().ok())
         .unwrap_or(8080);
@@ -59,7 +58,7 @@ fn main() -> Result<(), String> {
         vec![]
     };
 
-    cluster_runner::run_cluster_loop(
+    node_runner::run_node_loop(
         cluster_id,
         redis_url,
         neighbor_ids,
@@ -68,5 +67,6 @@ fn main() -> Result<(), String> {
             tick_demo_agents(&mut demo_agents, tick_count, stress_radius);
             agents_to_entries(&demo_agents, cluster_id)
         },
+        None,
     )
 }
