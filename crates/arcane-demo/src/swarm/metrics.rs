@@ -118,7 +118,7 @@ impl Metrics {
             sub_updates: self.sub_updates.swap(0, Ordering::Relaxed),
             sub_inserts: self.sub_inserts.swap(0, Ordering::Relaxed),
             sub_deletes: self.sub_deletes.swap(0, Ordering::Relaxed),
-            avg_latency_us: if n > 0 { sum / n } else { 0 },
+            avg_latency_us: sum.checked_div(n).unwrap_or(0),
             max_latency_us: self.latency_max_us.swap(0, Ordering::Relaxed),
             p50_latency_us: percentile_from_buckets(&buckets, n, 0.50),
             p95_latency_us: percentile_from_buckets(&buckets, n, 0.95),
