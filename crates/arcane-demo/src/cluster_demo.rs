@@ -222,6 +222,8 @@ pub fn agents_to_entries(agents: &[DemoAgent], cluster_id: Uuid) -> Vec<EntitySt
             velocity: Vec3::new(a.vx, a.vz, a.vy),
             user_data: serde_json::Value::Null,
             local_data: serde_json::Value::Null,
+            // Demo agents are server-authored: no client input sequence.
+            client_seq: 0,
         })
         .collect()
 }
