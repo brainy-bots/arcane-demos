@@ -7,6 +7,8 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "Components/StaticMeshComponent.h"
+#include "Engine/StaticMesh.h"
 #include "Engine/SkeletalMesh.h"
 #include "Engine/Blueprint.h"
 #include "Materials/MaterialInstanceDynamic.h"
@@ -47,6 +49,20 @@ AArcaneDemoCharacter::AArcaneDemoCharacter(const FObjectInitializer& ObjectIniti
 	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 	FollowCamera->bUsePawnControlRotation = false;
+
+	// Overhead cluster marker: engine sphere scaled down, floating above the head.
+	// Colored by SetDisplayColor (cluster color) — readable from spectator range.
+	ClusterMarker = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ClusterMarker"));
+	ClusterMarker->SetupAttachment(RootComponent);
+	ClusterMarker->SetRelativeLocation(FVector(0.f, 0.f, 140.f));
+	ClusterMarker->SetRelativeScale3D(FVector(0.35f));
+	ClusterMarker->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	ClusterMarker->SetCastShadow(false);
+	if (UStaticMesh* Sphere =
+			LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Sphere.Sphere")))
+	{
+		ClusterMarker->SetStaticMesh(Sphere);
+	}
 
 	// Skeletal mesh is required: load from project Content (see Content/CHARACTER_SETUP.md).
 	USkeletalMeshComponent* SkelMesh = GetMesh();
@@ -179,6 +195,28 @@ void AArcaneDemoCharacter::SetAnimationFromVelocity(FVector WorldVelocity)
 
 void AArcaneDemoCharacter::SetDisplayColor(FLinearColor Color)
 {
+	// Overhead marker: dynamic instance of the engine BasicShapeMaterial, tinted
+	// by cluster color. Unlit-ish and readable at spectator distance.
+	if (ClusterMarker && ClusterMarker->GetStaticMesh())
+	{
+		UMaterialInterface* MarkerBase = ClusterMarker->GetMaterial(0);
+		if (!MarkerBase)
+		{
+			MarkerBase = LoadObject<UMaterialInterface>(
+				nullptr, TEXT("/Engine/BasicShapes/BasicShapeMaterial.BasicShapeMaterial"));
+			if (MarkerBase)
+			{
+				ClusterMarker->SetMaterial(0, MarkerBase);
+			}
+		}
+		if (UMaterialInstanceDynamic* MarkerMI = ClusterMarker->CreateAndSetMaterialInstanceDynamic(0))
+		{
+			MarkerMI->SetVectorParameterValue(FName("Color"), Color);
+			MarkerMI->SetVectorParameterValue(FName("BaseColor"), Color);
+			MarkerMI->SetVectorParameterValue(FName("Tint"), Color);
+		}
+	}
+
 	USkeletalMeshComponent* SkelMesh = GetMesh();
 	if (!SkelMesh) return;
 	for (int32 i = 0; i < SkelMesh->GetNumMaterials(); ++i)

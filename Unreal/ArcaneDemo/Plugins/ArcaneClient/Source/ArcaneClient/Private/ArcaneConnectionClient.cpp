@@ -40,10 +40,11 @@ bool FArcaneConnectionClient::Connect(
 			Callbacks.OnConnectionError(Error);
 		}
 	});
-	Socket->OnMessage().AddLambda([this](const FString& Message) {
+	Socket->OnRawMessage().AddLambda([this](const void* Data, SIZE_T Size, SIZE_T BytesRemaining) {
 		if (Callbacks.OnMessage)
 		{
-			Callbacks.OnMessage(Message);
+			TArray<uint8> Bytes((const uint8*)Data, Size);
+			Callbacks.OnMessage(Bytes);
 		}
 	});
 	Socket->OnClosed().AddLambda([this](int32 StatusCode, const FString& Reason, bool bWasClean) {
@@ -71,10 +72,10 @@ bool FArcaneConnectionClient::IsConnected() const
 	return Socket.IsValid() && Socket->IsConnected();
 }
 
-void FArcaneConnectionClient::Send(const FString& Text) const
+void FArcaneConnectionClient::Send(const TArray<uint8>& Data) const
 {
 	if (Socket.IsValid() && Socket->IsConnected())
 	{
-		Socket->Send(Text);
+		Socket->Send(Data.GetData(), Data.Num(), /*bIsBinary=*/true);
 	}
 }

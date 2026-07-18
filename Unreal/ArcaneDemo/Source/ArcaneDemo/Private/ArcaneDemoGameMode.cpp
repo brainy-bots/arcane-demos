@@ -2,6 +2,7 @@
 
 #include "ArcaneDemoGameMode.h"
 #include "ArcaneDemoCharacter.h"
+#include "ArcaneDemoPlayerController.h"
 #include "ArcaneEntityDisplay.h"
 #include "ReplicatedBotSpawner.h"
 #include "SpacetimeDBEntityDisplay.h"
@@ -16,7 +17,8 @@ AArcaneDemoGameMode::AArcaneDemoGameMode()
 {
 	// Playable character: move (WASD), jump (Space), third-person camera (mouse look).
 	DefaultPawnClass = AArcaneDemoCharacter::StaticClass();
-	PlayerControllerClass = APlayerController::StaticClass();
+	// Demo controller adds the Tab spectator toggle (free-fly world inspection).
+	PlayerControllerClass = AArcaneDemoPlayerController::StaticClass();
 }
 
 void AArcaneDemoGameMode::InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage)

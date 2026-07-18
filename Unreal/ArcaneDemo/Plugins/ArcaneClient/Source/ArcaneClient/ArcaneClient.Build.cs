@@ -14,8 +14,7 @@ public class ArcaneClient : ModuleRules
 			"CoreUObject",
 			"Engine",
 			"HTTP",
-			"Json",
-			"JsonUtilities"
+			"ArcaneCore"
 		});
 
 		// Load on demand so plugin can load even if WebSockets fails at engine startup

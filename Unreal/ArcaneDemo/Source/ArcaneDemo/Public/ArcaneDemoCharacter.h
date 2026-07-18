@@ -8,6 +8,7 @@
 
 class USpringArmComponent;
 class UCameraComponent;
+class UStaticMeshComponent;
 
 /**
  * Default playable character for Arcane Demo. Third-person camera, WASD movement, jump,
@@ -30,6 +31,12 @@ public:
 	/** Apply cluster tint to mesh (optional, e.g. for entity color-by-cluster). */
 	UFUNCTION(BlueprintCallable, Category = "Arcane")
 	void SetDisplayColor(FLinearColor Color);
+
+	/** Overhead cluster marker: small unlit sphere above the head, colored by owning
+	 *  cluster via SetDisplayColor. Visible at distance/spectator range so ownership
+	 *  (and live migrations, when the color flips) can be read at a glance. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Arcane")
+	TObjectPtr<UStaticMeshComponent> ClusterMarker;
 
 	/** Push world velocity to anim instance (Speed, bIsFalling) so blend tree works when not locally controlled. Call after ApplyEntityStateToActor for entity characters. */
 	void SetAnimationFromVelocity(FVector WorldVelocity);

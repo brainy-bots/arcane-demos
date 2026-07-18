@@ -15,8 +15,18 @@
 	"IsEnabledByDefault": true,
 	"Modules": [
 		{
+			"Name": "ArcaneCore",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		},
+		{
 			"Name": "ArcaneClient",
 			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		},
+		{
+			"Name": "ArcaneServer",
+			"Type": "ServerOnly",
 			"LoadingPhase": "Default"
 		}
 	]

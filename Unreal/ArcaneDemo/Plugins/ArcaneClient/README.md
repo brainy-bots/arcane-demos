@@ -10,7 +10,7 @@ Client adapter for the Arcane backend: HTTP join to manager, WebSocket to cluste
 
 2. **Or use a Git submodule** (from your project root):
    ```bash
-   git submodule add <url-of-arcane-client-unreal> Plugins/ArcaneClient
+   git submodule add <url-of-arcane-unreal> Plugins/ArcaneClient
    ```
 
 3. Open your project in Unreal Editor; the plugin should be enabled. If not, enable it under Edit → Plugins.
@@ -36,6 +36,11 @@ Client adapter for the Arcane backend: HTTP join to manager, WebSocket to cluste
   - entity cache snapshot/interpolation tests
 - Run these from Unreal's automation runner in an editor/dev build.
 
+## Architecture
+
+- `docs/architecture/ARCHITECTURE_INDEX.md` - architecture navigation entrypoint for codec/cache/connection/lifecycle docs.
+- `docs/architecture/MODULE_INTERACTIONS.md` - Mermaid module graph and responsibility boundaries.
+
 ## Backend
 
 You need a running Arcane backend (manager + cluster). Use the reference server from the **arcane** Rust repo, or the demo backend from **arcane-demos**.
@@ -43,3 +48,11 @@ You need a running Arcane backend (manager + cluster). Use the reference server 
 ## Versioning
 
 Releases are tagged (e.g. `v0.1.0`). Pin to a tag when using as a submodule for reproducible builds.
+
+## License
+
+arcane-unreal is licensed under the **GNU Affero General Public License v3.0** (AGPL-3.0). See [LICENSE](LICENSE) for the full text.
+
+**For Unreal Engine games specifically**: AGPL-3.0 would require you to license your game under AGPL too if you ship it with this plugin. In practice, game studios building proprietary / commercial titles should obtain a commercial license from the copyright holder — the AGPL obligations do not apply under a commercial agreement.
+
+For licensing inquiries: martin.mba@gmail.com

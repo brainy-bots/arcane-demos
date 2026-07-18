@@ -8,7 +8,7 @@ struct FArcaneConnectionClientCallbacks
 {
 	TFunction<void()> OnConnected;
 	TFunction<void(const FString&)> OnConnectionError;
-	TFunction<void(const FString&)> OnMessage;
+	TFunction<void(const TArray<uint8>&)> OnMessage;
 	TFunction<void(int32, const FString&, bool)> OnClosed;
 };
 
@@ -18,7 +18,7 @@ public:
 	bool Connect(const FString& Host, int32 Port, FArcaneConnectionClientCallbacks&& InCallbacks, FString& OutError);
 	void Disconnect();
 	bool IsConnected() const;
-	void Send(const FString& Text) const;
+	void Send(const TArray<uint8>& Data) const;
 
 private:
 	TSharedPtr<IWebSocket> Socket;

@@ -131,6 +131,17 @@ public:
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	virtual void Deinitialize() override;
 
+#if WITH_DEV_AUTOMATION_TESTS
+	// Test-only hooks to validate connection lifecycle without network dependencies.
+	void TestOnly_SetConnectionState(EArcaneConnectionState InState) { ConnectionState = InState; }
+	void TestOnly_SetManualDisconnect(bool bInManualDisconnect) { bManualDisconnect = bInManualDisconnect; }
+	void TestOnly_SetReconnectAttempt(int32 InAttempt) { CurrentReconnectAttempt = InAttempt; }
+	int32 TestOnly_GetReconnectAttempt() const { return CurrentReconnectAttempt; }
+	double TestOnly_GetNextReconnectAtSeconds() const { return NextReconnectAtSeconds; }
+	void TestOnly_InvokeHandleConnectionFailure(const FString& Reason);
+	void TestOnly_InvokeAttemptReconnectIfDue();
+#endif
+
 private:
 	void StartJoinRequest();
 	void HandleConnectionFailure(const FString& Reason);
@@ -138,7 +149,7 @@ private:
 	void AttemptReconnectIfDue();
 	void OnJoinResponseReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bSuccess);
 	void ConnectWebSocket(const FString& Host, int32 Port);
-	void ParseStateUpdateJson(const FString& JsonString);
+	void ParseStateUpdateBinary(const TArray<uint8>& Bytes);
 	void ApplyStateUpdate(const TArray<FArcaneEntityState>& Updated, const TArray<FString>& RemovedIds);
 
 	bool bIsConnected = false;
@@ -147,7 +158,7 @@ private:
 	int32 CurrentReconnectAttempt = 0;
 	double NextReconnectAtSeconds = 0.0;
 	TUniquePtr<FArcaneConnectionClient> ConnectionClient;
-	TArray<FString> InboundMessageQueue;
+	TArray<TArray<uint8>> InboundMessageQueue;
 	mutable FCriticalSection InboundQueueMutex;
 	FArcaneEntityCache EntityCache;
 };

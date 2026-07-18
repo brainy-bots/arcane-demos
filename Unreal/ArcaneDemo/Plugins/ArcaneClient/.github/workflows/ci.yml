@@ -17,19 +17,29 @@ jobs:
         run: |
           $plugin = Get-Content "ArcaneClient.uplugin" -Raw | ConvertFrom-Json
           if (-not $plugin.FriendlyName) { throw "ArcaneClient.uplugin missing FriendlyName" }
-          if (-not $plugin.Modules -or $plugin.Modules.Count -lt 1) { throw "ArcaneClient.uplugin missing Modules" }
-          if ($plugin.Modules[0].Name -ne "ArcaneClient") { throw "Expected first module name ArcaneClient" }
+          if (-not $plugin.Modules -or $plugin.Modules.Count -lt 3) { throw "ArcaneClient.uplugin must have at least 3 modules" }
+          if ($plugin.Modules[0].Name -ne "ArcaneCore") { throw "Expected first module name ArcaneCore" }
+          if ($plugin.Modules[1].Name -ne "ArcaneClient") { throw "Expected second module name ArcaneClient" }
+          if ($plugin.Modules[2].Name -ne "ArcaneServer") { throw "Expected third module name ArcaneServer" }
+          if ($plugin.Modules[2].Type -ne "ServerOnly") { throw "ArcaneServer must be ServerOnly type" }
 
       - name: Validate source layout
         shell: pwsh
         run: |
-          if (-not (Test-Path "Source/ArcaneClient/ArcaneClient.Build.cs")) { throw "Missing Build.cs file" }
-          $headers = Get-ChildItem "Source/ArcaneClient/Public" -Recurse -Filter *.h -ErrorAction SilentlyContinue
-          $sources = Get-ChildItem "Source/ArcaneClient/Private" -Recurse -Filter *.cpp -ErrorAction SilentlyContinue
-          if (-not $headers -or -not $sources) { throw "Missing expected C++ public/private source files" }
+          if (-not (Test-Path "Source/ArcaneCore/ArcaneCore.Build.cs")) { throw "Missing ArcaneCore Build.cs" }
+          if (-not (Test-Path "Source/ArcaneClient/ArcaneClient.Build.cs")) { throw "Missing ArcaneClient Build.cs" }
+          $coreHeaders = Get-ChildItem "Source/ArcaneCore/Public" -Recurse -Filter *.h -ErrorAction SilentlyContinue
+          $coreSources = Get-ChildItem "Source/ArcaneCore/Private" -Recurse -Filter *.cpp -ErrorAction SilentlyContinue
+          if (-not $coreHeaders -or -not $coreSources) { throw "Missing ArcaneCore C++ source files" }
+          $clientHeaders = Get-ChildItem "Source/ArcaneClient/Public" -Recurse -Filter *.h -ErrorAction SilentlyContinue
+          $clientSources = Get-ChildItem "Source/ArcaneClient/Private" -Recurse -Filter *.cpp -ErrorAction SilentlyContinue
+          if (-not $clientHeaders -or -not $clientSources) { throw "Missing ArcaneClient C++ source files" }
+          if (-not (Test-Path "Source/ArcaneServer/ArcaneServer.Build.cs")) { throw "Missing ArcaneServer Build.cs" }
+          $serverSources = Get-ChildItem "Source/ArcaneServer/Private" -Recurse -Filter *.cpp -ErrorAction SilentlyContinue
+          if (-not $serverSources) { throw "Missing ArcaneServer C++ source files" }
 
       - name: Validate test sources exist
         shell: pwsh
         run: |
-          if (-not (Test-Path "Source/ArcaneClient/Private/Tests/ArcaneProtocolCodecTests.cpp")) { throw "Missing protocol codec tests" }
+          if (-not (Test-Path "Source/ArcaneCore/Private/Tests/ArcaneProtocolCodecTests.cpp")) { throw "Missing protocol codec tests" }
           if (-not (Test-Path "Source/ArcaneClient/Private/Tests/ArcaneEntityCacheTests.cpp")) { throw "Missing entity cache tests" }

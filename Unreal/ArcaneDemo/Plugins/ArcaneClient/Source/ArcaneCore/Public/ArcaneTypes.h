@@ -24,9 +24,13 @@ struct FArcaneEntityState
 	UPROPERTY(BlueprintReadOnly, Category = "Arcane")
 	FVector Velocity = FVector::ZeroVector;
 
+	/** Opaque replicated state (bucket 2). Game code interprets the raw bytes. */
+	UPROPERTY(BlueprintReadOnly, Category = "Arcane")
+	TArray<uint8> UserData;
+
 	FArcaneEntityState() = default;
-	FArcaneEntityState(const FString& InEntityId, const FString& InClusterId, const FVector& InPosition, const FVector& InVelocity)
-		: EntityId(InEntityId), ClusterId(InClusterId), Position(InPosition), Velocity(InVelocity) {}
+	FArcaneEntityState(const FString& InEntityId, const FString& InClusterId, const FVector& InPosition, const FVector& InVelocity, const TArray<uint8>& InUserData = TArray<uint8>())
+		: EntityId(InEntityId), ClusterId(InClusterId), Position(InPosition), Velocity(InVelocity), UserData(InUserData) {}
 };
 
 /** Result of GET /join from the manager. */

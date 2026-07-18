@@ -17,7 +17,7 @@
 
 ## 1. Overview
 
-IClientAdapter is the complete boundary between the Arcane Engine server infrastructure and any game engine. The server stack — ClusterManager, ClusterServer, RPCHandler, ReplicationChannelManager — produces a structured stream of entity state updates, cluster assignment events, and connection lifecycle signals. IClientAdapter consumes that stream and translates it into whatever representation the engine uses internally.
+IClientAdapter is the complete boundary between the Arcane Engine server infrastructure and any game engine. The server stack — ArcaneManager, ArcaneNode, RPCHandler, ReplicationChannelManager — produces a structured stream of entity state updates, cluster assignment events, and connection lifecycle signals. IClientAdapter consumes that stream and translates it into whatever representation the engine uses internally.
 
 The interface is intentionally minimal. It does not prescribe how the engine renders entities, runs animations, handles input, or manages scenes. It only specifies the data that flows across the boundary and the lifecycle events that must be handled. Everything engine-specific lives in the adapter implementation, invisible to the server.
 
@@ -29,12 +29,12 @@ The interface is intentionally minimal. It does not prescribe how the engine ren
 
 An IClientAdapter implementation is responsible for exactly these things and nothing else.
 
-- Manage the WebSocket connection lifecycle to the ClusterManager — connect, authenticate, disconnect, reconnect on failure
-- Manage the WebSocket connection lifecycle to the assigned ClusterServer — connect on assignment, reconnect on merge/split signal
+- Manage the WebSocket connection lifecycle to the ArcaneManager — connect, authenticate, disconnect, reconnect on failure
+- Manage the WebSocket connection lifecycle to the assigned Arcane Node — connect on assignment, reconnect on merge/split signal
 - Receive and deserialize all inbound messages from the server — entity state updates, cluster assignment, neighbor broadcast, system events
 - Deliver deserialized entity state to the engine's entity representation system each tick
-- Capture and serialize player input each tick and transmit to the assigned ClusterServer
-- Handle seamless cluster server handoff — disconnect from old server, connect to new server within the required latency window on merge/split
+- Capture and serialize player input each tick and transmit to the assigned Arcane Node
+- Handle seamless Arcane Node handoff — disconnect from old node, connect to new node within the required latency window on merge/split
 - Expose a metrics overlay data source — current cluster ID, active cluster count, per-cluster CPU, cross-cluster RPC rate
 - Report connection health and error states to the engine for user-facing feedback
 
@@ -43,8 +43,8 @@ An IClientAdapter implementation is responsible for exactly these things and not
 ## 3. What It Does NOT Do
 
 - **Render entities** — that is the engine's job
-- **Run game logic or physics** — that is the ClusterServer's job
-- **Make clustering or merge decisions** — that is the ClusterManager's job
+- **Run game logic or physics** — that is the Arcane Node's job
+- **Make clustering or merge decisions** — that is the ArcaneManager's job
 - **Store persistent player data** — that is SpacetimeDB's job
 - **Validate player input for cheating** — that is the InputValidationLayer's job on the server
 - **Handle authentication or session management** — that is a separate auth service outside this document's scope
@@ -57,15 +57,15 @@ An adapter maintains two persistent connections simultaneously during normal ope
 
 | Connection | Endpoint | Protocol | Purpose |
 |---|---|---|---|
-| **Manager** | ClusterManager :8081 | WebSocket (JSON) | Player join/leave, cluster assignment, merge/split signals, system events |
-| **Cluster** | ClusterServer :8080 (assigned) | WebSocket (msgpack) | Entity state stream inbound, player input outbound, 20Hz each direction |
+| **Manager** | ArcaneManager :8081 | WebSocket (JSON) | Player join/leave, cluster assignment, merge/split signals, system events |
+| **Cluster** | ArcaneNode :8080 (assigned) | WebSocket (msgpack) | Entity state stream inbound, player input outbound, 20Hz each direction |
 
 > The Manager connection is long-lived for the session. The Cluster connection changes on every merge and split. The adapter must handle Cluster connection replacement without dropping frames or producing visible discontinuity.
 
 ### Handoff Sequence (Merge or Split)
 
 ```
-1. ClusterManager sends CLUSTER_REASSIGN via Manager connection
+1. ArcaneManager sends CLUSTER_REASSIGN via Manager connection
    { type: CLUSTER_REASSIGN, new_server_host, new_server_port, handoff_token, deadline_ms }
 
 2. Adapter opens NEW Cluster connection to new_server_host:new_server_port
@@ -80,7 +80,7 @@ An adapter maintains two persistent connections simultaneously during normal ope
    No frame skip. No visible discontinuity.
 ```
 
-**Handoff semantics:** Handoff requires no data commits. One server stops writing for that entity; the other reads current state from SpacetimeDB and starts writing. The new server picks up the entity as soon as it reads the updated ownership. The client must be robust: if for any reason it has no server assigned (e.g. missed deadline, connection issues), it must not crash — it waits and requests assignment ("I don't have an owner"); the Manager assigns immediately. Any state missed during the transition is recovered by full sync (gap recovery) when the client connects. The handoff deadline (`deadline_ms`) is configurable and can be relaxed; tune via testing. An optional handshake (new server confirms before owning) is possible but not required; the new server can simply read state and start.
+**Handoff semantics:** Handoff requires no data commits. One node stops writing for that entity; the other reads current state from SpacetimeDB and starts writing. The new node picks up the entity as soon as it reads the updated ownership. The client must be robust: if for any reason it has no node assigned (e.g. missed deadline, connection issues), it must not crash — it waits and requests assignment ("I don't have an owner"); the Manager assigns immediately. Any state missed during the transition is recovered by full sync (gap recovery) when the client connects. The handoff deadline (`deadline_ms`) is configurable and can be relaxed; tune via testing. An optional handshake (new node confirms before owning) is possible but not required; the new node can simply read state and start.
 
 ---
 
@@ -99,7 +99,7 @@ Called once at startup. Establishes configuration, validates required fields, pr
 
 | Parameter | Type | Description |
 |---|---|---|
-| `config.manager_url` | string | `ws://host:8081` — ClusterManager WebSocket URL |
+| `config.manager_url` | string | `ws://host:8081` — ArcaneManager WebSocket URL |
 | `config.player_id` | UUID | Stable player identifier for this session |
 | `config.auth_token` | string | Session token from auth service |
 | `config.reconnect_interval_ms` | int | Milliseconds between reconnect attempts (default 1000) |
@@ -117,7 +117,7 @@ Opens Manager connection. Sends PLAYER_JOIN. Blocks until cluster assignment rec
 #### `disconnect(reason: DisconnectReason)`
 **Returns:** void
 
-Sends PLAYER_LEAVE to ClusterManager. Closes both connections gracefully. Emits ON_DISCONNECTED event.
+Sends PLAYER_LEAVE to ArcaneManager. Closes both connections gracefully. Emits ON_DISCONNECTED event.
 
 | Parameter | Type | Description |
 |---|---|---|
@@ -145,7 +145,7 @@ Main per-frame update. Drains the inbound message queue, processes all pending e
 #### `submit_input(input: PlayerInput) -> void`
 **Returns:** void
 
-Enqueues player input for transmission to ClusterServer. Non-blocking — input is batched and sent on the next network flush (every 50ms). Safe to call multiple times per frame.
+Enqueues player input for transmission to the Arcane Node. Non-blocking — input is batched and sent on the next network flush (every 50ms). Safe to call multiple times per frame.
 
 | Parameter | Type | Description |
 |---|---|---|
@@ -200,7 +200,7 @@ MetricsSnapshot {
   cross_cluster_rpc_p99_ms:    float    // p99 latency ms
   merge_events_last_60s:       int
   split_events_last_60s:       int
-  connection_latency_ms:       float    // round trip to cluster server
+  connection_latency_ms:       float    // round trip to Arcane Node
 }
 ```
 
@@ -212,10 +212,10 @@ The adapter emits events that the engine subscribes to. The engine must register
 
 | Event | Required | Payload | When Emitted |
 |---|---|---|---|
-| `ON_CONNECTED` | ✅ | `cluster_id, server_host` | Successfully joined a cluster server after connect() |
+| `ON_CONNECTED` | ✅ | `cluster_id, server_host` | Successfully joined an Arcane Node after connect() |
 | `ON_DISCONNECTED` | ✅ | `reason: DisconnectReason` | Connection lost or graceful disconnect |
 | `ON_CLUSTER_REASSIGNED` | ✅ | `old_cluster_id, new_cluster_id, new_host` | Merge or split in progress — adapter is executing handoff |
-| `ON_CLUSTER_HANDOFF_COMPLETE` | ✅ | `new_cluster_id` | Handoff complete, now connected to new cluster server |
+| `ON_CLUSTER_HANDOFF_COMPLETE` | ✅ | `new_cluster_id` | Handoff complete, now connected to new Arcane Node |
 | `ON_CONNECTION_FAILED` | ✅ | `reason, attempt_count` | All reconnect attempts exhausted — unrecoverable |
 | `ON_ENTITY_ENTERED` | optional | `EntitySnapshot` | Entity became visible (entered observation radius or joined cluster) |
 | `ON_ENTITY_LEFT` | optional | `entity_id` | Entity left observation radius or despawned |
@@ -248,12 +248,12 @@ METRICS_UPDATE   { type, MetricsSnapshot }    // pushed every 2s
 ### 7.2 Cluster Connection (msgpack)
 
 ```
-// Client → ClusterServer (20Hz)
+// Client → ArcaneNode (20Hz)
 PLAYER_INPUT     { type, player_id, position, velocity, action, action_data?,
                    timestamp, sequence_num, last_state_seq }
                    // last_state_seq: last STATE_UPDATE seq number received by client
 
-// ClusterServer → Client (20Hz) — delta by default
+// ArcaneNode → Client (20Hz) — delta by default
 STATE_UPDATE     { type, tick: int, timestamp: float, seq: int,
                    updated: [EntityStateDelta],    // only fields that changed this tick
                    removed_entity_ids: UUID[] }
@@ -267,7 +267,7 @@ STATE_UPDATE_FULL { type, tick: int, timestamp: float, seq: int,
                     removed_entity_ids: UUID[] }
 // Full snapshots are demand-driven only — never sent on a fixed schedule.
 
-// ClusterServer → Client (event-driven)
+// ArcaneNode → Client (event-driven)
 HANDOFF_ACCEPTED { type, cluster_id, player_count }
 RPC_RESULT       { type, request_id, result: SUCCESS | FAILURE, state_tick: int }
 // state_tick = the STATE_UPDATE tick (or seq) in which this action was applied. Client uses it to
@@ -276,13 +276,13 @@ RPC_RESULT       { type, request_id, result: SUCCESS | FAILURE, state_tick: int 
 // authoritative state comes from STATE_UPDATE. Enables responsive feedback for high-ping clients.
 AOE_BROADCAST    { type, aoe_object: AoEObject }
 
-// Client → ClusterServer (event-driven)
+// Client → ArcaneNode (event-driven)
 HANDOFF_CLAIM    { type, handoff_token, player_id }
 ```
 
 ### 7.3 RPC result and client-side prediction
 
-RPC_RESULT carries **success or failure** and the **state_tick** (or seq) of the STATE_UPDATE in which the action was applied. The ClusterServer sends RPC_RESULT to the client when it receives the return from a **SpacetimeDB reducer** (e.g. after calling a game reducer for a discrete event like attack hit or use item). It does not duplicate authoritative state (e.g. new health); that arrives in STATE_UPDATE.
+RPC_RESULT carries **success or failure** and the **state_tick** (or seq) of the STATE_UPDATE in which the action was applied. The Arcane Node sends RPC_RESULT to the client when it receives the return from a **SpacetimeDB reducer** (e.g. after calling a game reducer for a discrete event like attack hit or use item). It does not duplicate authoritative state (e.g. new health); that arrives in STATE_UPDATE.
 
 **Client behavior:** On RPC_RESULT success, the client can **immediately** show feedback (sound, animation, optional predicted state) without waiting for the state update — improving perceived responsiveness, especially for high-ping users. When the STATE_UPDATE with that state_tick arrives, the client uses it as **verification**: reconcile prediction or correct. So the client predicts optimistically and the state stream is the source of truth. This is the standard client-side prediction + server reconciliation pattern; the state_tick correlation id is what makes it work.
 
@@ -290,13 +290,13 @@ RPC_RESULT carries **success or failure** and the **state_tick** (or seq) of the
 
 ## 8. Metrics
 
-Client-side metrics are **push-based** — the adapter includes a compact metrics payload in every PLAYER_INPUT message sent to the ClusterServer. The server aggregates these across all connected clients and exposes them via its own Prometheus endpoint. There is no per-client HTTP server. Game clients are behind NAT and firewalls and cannot be scraped by Prometheus directly.
+Client-side metrics are **push-based** — the adapter includes a compact metrics payload in every PLAYER_INPUT message sent to the Arcane Node. The node aggregates these across all connected clients and exposes them via its own Prometheus endpoint. There is no per-client HTTP server. Game clients are behind NAT and firewalls and cannot be scraped by Prometheus directly.
 
 Metrics included in PLAYER_INPUT payload:
 
 | Field | Measures |
 |---|---|
-| `connection_latency_ms` | Round trip to cluster server |
+| `connection_latency_ms` | Round trip to Arcane Node |
 | `entity_cache_size` | Entities currently tracked by adapter |
 | `input_queue_depth` | Pending outbound messages |
 | `state_recv_rate_hz` | STATE_UPDATE messages received per second |
@@ -310,7 +310,7 @@ Metrics included in PLAYER_INPUT payload:
 | Failure | Detection | Adapter Response | Player Experience |
 |---|---|---|---|
 | Manager connection lost | WebSocket close or ping timeout (5s) | Reconnect with exponential backoff. Pause input sends. Cache last known state. | Brief freeze. Seamless resume if reconnected within 10s. Otherwise ON_CONNECTION_FAILED. |
-| Cluster connection lost | WebSocket close or ping timeout (3s) | Reconnect to same cluster server. If unavailable, request new assignment from Manager. | Brief input lag. Entity state pauses then resumes. No data loss under 30s. |
+| Cluster connection lost | WebSocket close or ping timeout (3s) | Reconnect to same Arcane Node. If unavailable, request new assignment from Manager. | Brief input lag. Entity state pauses then resumes. No data loss under 30s. |
 | Handoff deadline missed | `deadline_ms` exceeded without HANDOFF_ACCEPTED | Close both connections. Request fresh CLUSTER_ASSIGN from Manager. | ~500ms gap. Player state preserved on server — no game state loss. |
 | Malformed server message | Deserialization error | Log error with raw bytes. Skip message. Continue. Emit warning in metrics if rate > 1/min. | No visible impact unless persistent. |
 | STATE_UPDATE rate drops | < 10Hz for 3 consecutive seconds | Interpolate using last known velocity. Emit metric. Do not disconnect. | Entities move less smoothly. Auto-recovers when rate resumes. |
@@ -344,9 +344,9 @@ The demo overlay requires visible cluster boundaries. The adapter assigns a dete
 
 An adapter implementation is complete when it passes all of the following checks without modification to any server component.
 
-- Connects to a running ClusterManager and receives CLUSTER_ASSIGN within 5 seconds
+- Connects to a running ArcaneManager and receives CLUSTER_ASSIGN within 5 seconds
 - Receives STATE_UPDATE at 20Hz for 60 consecutive seconds without message loss
-- Completes a merge handoff (triggered manually via ClusterManager API) within 200ms
+- Completes a merge handoff (triggered manually via ArcaneManager API) within 200ms
 - Displays correct cluster color coding for a 3-cluster scenario
 - `get_metrics()` returns accurate active cluster count matching Prometheus
 - `tick()` completes in under 2ms on target hardware with 500 entities in cache

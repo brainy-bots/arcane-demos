@@ -76,8 +76,9 @@ void UArcaneAdapterSubsystem::OnJoinResponseReceived(FHttpRequestPtr Request, FH
 
 	FString ServerHost;
 	int32 ServerPort = 8080;
+	FString ClusterId;
 	FString ParseError;
-	if (!ArcaneProtocolCodec::ParseJoinResponse(Response->GetContentAsString(), ServerHost, ServerPort, ParseError))
+	if (!ArcaneProtocolCodec::ParseJoinResponse(Response->GetContentAsString(), ServerHost, ServerPort, ClusterId, ParseError))
 	{
 		HandleConnectionFailure(ParseError);
 		return;
@@ -115,7 +116,7 @@ void UArcaneAdapterSubsystem::ConnectWebSocket(const FString& Host, int32 Port)
 					HandleConnectionFailure(Error);
 				});
 			},
-			[this](const FString& Message) {
+			[this](const TArray<uint8>& Message) {
 				FScopeLock Lock(&InboundQueueMutex);
 				InboundMessageQueue.Add(Message);
 			},
@@ -161,15 +162,15 @@ void UArcaneAdapterSubsystem::Tick(float DeltaTime)
 {
 	AttemptReconnectIfDue();
 
-	TArray<FString> ToProcess;
+	TArray<TArray<uint8>> ToProcess;
 	{
 		FScopeLock Lock(&InboundQueueMutex);
 		ToProcess = MoveTemp(InboundMessageQueue);
 		InboundMessageQueue.Empty();
 	}
-	for (const FString& Message : ToProcess)
+	for (const TArray<uint8>& Message : ToProcess)
 	{
-		ParseStateUpdateJson(Message);
+		ParseStateUpdateBinary(Message);
 	}
 }
 
@@ -229,13 +230,25 @@ void UArcaneAdapterSubsystem::AttemptReconnectIfDue()
 	StartJoinRequest();
 }
 
-void UArcaneAdapterSubsystem::ParseStateUpdateJson(const FString& JsonString)
+#if WITH_DEV_AUTOMATION_TESTS
+void UArcaneAdapterSubsystem::TestOnly_InvokeHandleConnectionFailure(const FString& Reason)
+{
+	HandleConnectionFailure(Reason);
+}
+
+void UArcaneAdapterSubsystem::TestOnly_InvokeAttemptReconnectIfDue()
+{
+	AttemptReconnectIfDue();
+}
+#endif
+
+void UArcaneAdapterSubsystem::ParseStateUpdateBinary(const TArray<uint8>& Bytes)
 {
 	TArray<FArcaneEntityState> Updated;
 	TArray<FString> RemovedIds;
-	if (!ArcaneProtocolCodec::ParseStateUpdate(JsonString, Updated, RemovedIds))
+	if (!ArcaneProtocolCodec::ParseStateUpdate(Bytes, Updated, RemovedIds))
 	{
-		UE_LOG(LogArcaneAdapter, Warning, TEXT("ParseStateUpdateJson: invalid JSON (first 200 chars): %s"), *JsonString.Left(200));
+		UE_LOG(LogArcaneAdapter, Warning, TEXT("ParseStateUpdateBinary: invalid binary frame (%d bytes)"), Bytes.Num());
 		return;
 	}
 
@@ -315,6 +328,6 @@ void UArcaneAdapterSubsystem::SendPlayerState(FVector Position, FVector Velocity
 	{
 		return;
 	}
-	const FString Json = ArcaneProtocolCodec::BuildPlayerStateJson(PlayerEntityId, Position, Velocity, SendPositionScale);
-	ConnectionClient->Send(Json);
+	const TArray<uint8> Binary = ArcaneProtocolCodec::BuildPlayerState(PlayerEntityId, Position, Velocity, SendPositionScale);
+	ConnectionClient->Send(Binary);
 }

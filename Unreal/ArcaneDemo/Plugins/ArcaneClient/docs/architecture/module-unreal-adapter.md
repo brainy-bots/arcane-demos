@@ -9,7 +9,7 @@
 | **Layer** | Client Adapter |
 | **Type** | Implementation |
 | **Implements** | CA-01 IClientAdapter |
-| **Purpose** | Unreal Engine 5 implementation of the client adapter. Connects the Arcane server stack (ClusterManager, ClusterServer) to UE5; uses **Mass Entity** for high-density crowd rendering of replicated entities. This is the adapter used by the demo. |
+| **Purpose** | Unreal Engine 5 implementation of the client adapter. Connects the Arcane server stack (ArcaneManager, ArcaneNode) to UE5; uses **Mass Entity** for high-density crowd rendering of replicated entities. This is the adapter used by the demo. |
 | **Document version** | 1.0 |
 
 ---
@@ -30,8 +30,8 @@ UnrealAdapter is the only engine-specific code on the client side. It implements
 
 ## 2. Responsibilities (mapping from CA-01)
 
-- **Manager connection:** Open WebSocket to ClusterManager (`config.manager_url`), send PLAYER_JOIN, wait for CLUSTER_ASSIGN. Reconnect with backoff on disconnect. Send PLAYER_LEAVE on shutdown.
-- **Cluster connection:** Open WebSocket to assigned ClusterServer (`server_host:server_port`). Send PLAYER_INPUT at 20Hz; receive STATE_UPDATE (and HANDOFF_ACCEPTED, RPC_RESULT, AOE_BROADCAST). On CLUSTER_REASSIGN, perform handoff: new connection, HANDOFF_CLAIM, close old within `deadline_ms`.
+- **Manager connection:** Open WebSocket to ArcaneManager (`config.manager_url`), send PLAYER_JOIN, wait for CLUSTER_ASSIGN. Reconnect with backoff on disconnect. Send PLAYER_LEAVE on shutdown.
+- **Cluster connection:** Open WebSocket to assigned Arcane Node (`server_host:server_port`). Send PLAYER_INPUT at 20Hz; receive STATE_UPDATE (and HANDOFF_ACCEPTED, RPC_RESULT, AOE_BROADCAST). On CLUSTER_REASSIGN, perform handoff: new connection, HANDOFF_CLAIM, close old within `deadline_ms`.
 - **Entity state:** Maintain local entity cache (entity_id → EntitySnapshot). Merge STATE_UPDATE deltas into cache; apply `removed_entity_ids`. Expose `get_entity_snapshot()` for the engine. **Mass:** map EntitySnapshot into Mass fragments and update Mass entities each tick so the Mass renderer can draw the crowd.
 - **Input:** Each tick, collect player position/velocity/action from the game, call `submit_input(PlayerInput)`. Adapter batches and sends at 20Hz on the Cluster connection.
 - **Events:** Emit ON_CONNECTED, ON_DISCONNECTED, ON_CLUSTER_REASSIGNED, ON_CLUSTER_HANDOFF_COMPLETE, ON_CONNECTION_FAILED, and optional ON_ENTITY_ENTERED / ON_ENTITY_LEFT / ON_SYSTEM_MESSAGE. Deliver on game thread during `tick()`.
@@ -45,7 +45,7 @@ UnrealAdapter is the only engine-specific code on the client side. It implements
 - **Rendering** — Mass (or the game’s renderer) draws entities; the adapter only updates the data Mass reads.
 - **Game logic or physics** — Movement, combat, and AI run on the server; the client displays state and sends input.
 - **Authentication UI** — Adapter receives `auth_token` via config; it does not implement login flows.
-- **SpacetimeDB or server clustering** — Client is unaware of ClusterManager/ClusterServer internals; it only follows the CA-01 protocol.
+- **SpacetimeDB or server clustering** — Client is unaware of ArcaneManager/ArcaneNode internals; it only follows the CA-01 protocol.
 
 ---
 
@@ -160,7 +160,7 @@ Adapter can own the Mass subsystem or the game can; the adapter must provide the
 
 | Config key | Type | Default | Description |
 |------------|------|---------|-------------|
-| Manager URL | FString | `ws://127.0.0.1:8081` | ClusterManager WebSocket URL |
+| Manager URL | FString | `ws://127.0.0.1:8081` | ArcaneManager WebSocket URL |
 | Player ID | FString (UUID) | — | Set at login or from game instance |
 | Auth token | FString | — | Session token |
 | Reconnect interval ms | int | 1000 | Delay between reconnect attempts |
@@ -183,7 +183,7 @@ Expose via **Project Settings** (custom category “Arcane”) or a config file 
 
 An implementation is complete when:
 
-- Connects to ClusterManager and receives CLUSTER_ASSIGN within 5 seconds.
+- Connects to ArcaneManager and receives CLUSTER_ASSIGN within 5 seconds.
 - Receives STATE_UPDATE at ~20Hz for 60+ seconds without message loss.
 - Completes a merge handoff within `deadline_ms` (e.g. 200 ms).
 - Cluster color coding correct for multi-cluster scenario (Mass entities show correct cluster color).
